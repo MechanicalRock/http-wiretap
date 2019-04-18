@@ -8,15 +8,13 @@
     "build": "tslint -c tslint.json --project tsconfig.json \"src/**/*.ts\" && tsc"
   },
   "dependencies": {
-    "isomorphic-fetch": "^2.2.1",
     "node-fetch": "^2.3.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.17",
-    "@types/fetch-mock": "^7.2.3",
     "@types/jest": "^24.0.11",
     "@types/node": "^8.10.45",
-    "fetch-mock": "^7.3.1",
+    "@types/node-fetch": "^2.3.2",
     "jest": "^24.7.1",
     "jest-circus": "^24.7.1",
     "jest-cucumber": "^2.0.11",

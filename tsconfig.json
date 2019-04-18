@@ -1,11 +1,9 @@
 {
   "compilerOptions": {
-    "lib": [
-      "es2017"
-    ],
+    "lib": ["es2017", "dom"],
     "moduleResolution": "node",
     "noUnusedLocals": true,
-    "noUnusedParameters": false,
+    "noUnusedParameters": true,
     "sourceMap": true,
     "target": "es2017",
     "outDir": "lib"
