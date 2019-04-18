@@ -36,7 +36,7 @@ defineFeature(feature, scenario => {
 
     });
 
-    then(/^a get request for a resource with same identifier should give return code (.*)$/, (arg0) => {
+    then(/^a get request for a resource with same identifier should give return code (.*)$/, (statusCode: string) => {
 
     });
   });
@@ -54,7 +54,7 @@ defineFeature(feature, scenario => {
 
     });
 
-    then(/^the return code will be (.*)$/, (arg0) => {
+    then(/^the return code will be (.*)$/, (statusCode: string) => {
 
     });
   });
@@ -76,7 +76,7 @@ defineFeature(feature, scenario => {
 
     });
 
-    then(/^the return code will be (.*)$/, (arg0) => {
+    then(/^the return code will be (.*)$/, (statusCode: string) => {
 
     });
 
