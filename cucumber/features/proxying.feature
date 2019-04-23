@@ -27,7 +27,7 @@ Scenario Outline: Responses are returned from downstream
   | GET         | 404         |
   | POST        | 500         |
 
-@dev
+@complete
 Scenario: The downstream service fails to respond
   Given the downstream service shall not respond
   And the proxy timeout is configured to 1 second
@@ -35,6 +35,7 @@ Scenario: The downstream service fails to respond
   Then the proxy return code should be 502
   And the proxy should return within 1.1 seconds
 
+@dev
 Scenario: Transparent proxying of requests downstream
   When the client send a request to the proxy
   Then the request body should be received by the downstream service

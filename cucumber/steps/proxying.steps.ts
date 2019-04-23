@@ -19,6 +19,10 @@ defineFeature(feature, scenario => {
     process.env.PROXY_TIMEOUT_SECONDS = proxyTimeoutSecs
   }
 
+  async function whenTheClientSendsARequestToTheProxyDefault() {
+    return whenTheClientSendsARequestToTheProxy('POST')
+  }
+
   async function whenTheClientSendsARequestToTheProxy(httpMethod: string) {
     const event: ALBEvent = {
       requestContext: {
@@ -96,9 +100,7 @@ defineFeature(feature, scenario => {
       givenProxyTimeoutIsConfigured(proxyTimeoutSecs)
     });
 
-    when('the client send a request to the proxy', async () => {
-      response = await whenTheClientSendsARequestToTheProxy("POST")
-    });
+    when('the client send a request to the proxy', whenTheClientSendsARequestToTheProxyDefault);
 
     then(/^the proxy return code should be (\d+)$/, (statusCode: string) => {
       expect(response.statusCode).toEqual(Number(statusCode))
@@ -177,24 +179,7 @@ defineFeature(feature, scenario => {
       })
     });
 
-    when(/^the client sends (.*) a request to the proxy$/, async (httpMethod: string) => {
-      const event: ALBEvent = {
-        requestContext: {
-          elb: { targetGroupArn: "aws:arn:fake" }
-        },
-        httpMethod,
-        path: "/downstream",
-        queryStringParameters: {},
-        headers: {
-          "x-forwarded-proto": "https",
-          host: "localhost"
-        },
-        isBase64Encoded: false,
-        body: null
-      }
-
-      response = await sendProxy(event);
-    });
+    when(/^the client sends (.*) a request to the proxy$/, whenTheClientSendsARequestToTheProxy);
 
     then(/^the proxy return code should be (\d+)$/, (statusCode: string) => {
       expect(response.statusCode).toBe(statusCode)
