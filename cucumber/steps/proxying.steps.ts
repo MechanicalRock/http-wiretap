@@ -6,16 +6,18 @@ import { sendProxy } from "../../src/handler"
 const feature = loadFeature("cucumber/features/proxying.feature")
 const proxyUrl = "https://localhost:8085/downstream"
 
-function givenLambdaProxyHasBeenConfigured(proxyUrl: string) {
-  process.env.PROXY_URL = proxyUrl
-}
 
 defineFeature(feature, scenario => {
   let response: ALBResult
+  let downstreamRequestElapsedTime: number
 
-  beforeEach( () => {
-    givenLambdaProxyHasBeenConfigured(proxyUrl)
-  })
+  function givenLambdaProxyHasBeenConfigured(proxyUrl: string) {
+    process.env.PROXY_URL = proxyUrl
+  }
+
+  function givenProxyTimeoutIsConfigured(proxyTimeoutSecs: string) {
+    process.env.PROXY_TIMEOUT_SECONDS = proxyTimeoutSecs
+  }
 
   async function whenTheClientSendsARequestToTheProxy(httpMethod: string) {
     const event: ALBEvent = {
@@ -33,8 +35,15 @@ defineFeature(feature, scenario => {
       body: null
     }
 
+    const startTime = Date.now()
     response = await sendProxy(event);
+    downstreamRequestElapsedTime = Date.now() - startTime
   }
+
+  beforeEach( () => {
+    givenLambdaProxyHasBeenConfigured(proxyUrl)
+    givenProxyTimeoutIsConfigured("30000");
+  })
 
   describe('PROXY_URL is a required environment variable', () => {
     it('should fail when not set', async (done)=> {
@@ -75,22 +84,27 @@ defineFeature(feature, scenario => {
 
   scenario('The downstream service fails to respond', ({ given, and, when, then }) => {
     given('the downstream service shall not respond', () => {
+      const longDelayedResponse = new Promise(res => setTimeout(() => {
+        res()
+      }, 500000))
 
+      fetchMock.post(proxyUrl, longDelayedResponse);
     });
 
     and(/^the proxy timeout is configured to (.*) second$/, (proxyTimeoutSecs: string) => {
+      givenProxyTimeoutIsConfigured(proxyTimeoutSecs)
     });
 
     when('the client send a request to the proxy', () => {
-
+      whenTheClientSendsARequestToTheProxy("POST")
     });
 
-    then(/^the proxy return code should be (.*)$/, (arg0) => {
-
+    then(/^the proxy return code should be (.*)$/, (statusCode: string) => {
+      expect(response.statusCode).toBe(statusCode)
     });
 
-    and(/^the proxy should return within (.*) seconds$/, (arg0) => {
-
+    and(/^the proxy should return within (.*) seconds$/, (elapsedTime: string) => {
+      expect(downstreamRequestElapsedTime).toBe(Number(elapsedTime))
     });
   });
 
