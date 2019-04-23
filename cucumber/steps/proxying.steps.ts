@@ -1,17 +1,84 @@
 import { defineFeature, loadFeature } from "jest-cucumber"
-// import fetch, { Response } from "node-fetch"
+import * as fetchMock from "fetch-mock"
+import { ALBEvent, ALBResult } from "aws-lambda";
+import { sendProxy } from "../../src/handler"
 
 const feature = loadFeature("cucumber/features/proxying.feature")
-// const proxyUrl = ""
+const proxyUrl = "https://localhost:8085/downstream"
+
+function givenLambdaProxyHasBeenConfigured(proxyUrl: string) {
+  process.env.PROXY_URL = proxyUrl
+}
 
 defineFeature(feature, scenario => {
+  let response: ALBResult
+
+  beforeEach( () => {
+    givenLambdaProxyHasBeenConfigured(proxyUrl)
+  })
+
+  async function whenTheClientSendsARequestToTheProxy(httpMethod: string) {
+    const event: ALBEvent = {
+      requestContext: {
+        elb: { targetGroupArn: "aws:arn:fake" }
+      },
+      httpMethod,
+      path: "/downstream",
+      queryStringParameters: {},
+      headers: {
+        "x-forwarded-proto": "https",
+        host: "localhost"
+      },
+      isBase64Encoded: false,
+      body: null
+    }
+
+    response = await sendProxy(event);
+  }
+
+  describe('PROXY_URL is a required environment variable', () => {
+    it('should fail when not set', async (done)=> {
+      delete process.env.PROXY_URL
+      try{
+        await whenTheClientSendsARequestToTheProxy('GET')
+        done.fail("Expected error to be thrown")
+      }catch(err){
+        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
+        done()
+      }
+
+    })
+
+    it('should fail when set to an invalid URL', async (done) => {
+      process.env.PROXY_URL = "localhost 8080"
+      try{
+        await whenTheClientSendsARequestToTheProxy('GET')
+        done.fail("Expected error to be thrown")
+      }catch(err){
+        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
+        done()
+      }
+
+    })
+
+    it('should fail when set to an empty string URL', async(done) => {
+      process.env.PROXY_URL = ""
+      try{
+        await whenTheClientSendsARequestToTheProxy('GET')
+        done.fail("Expected error to be thrown")
+      }catch(err){
+        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
+        done()
+      }
+    })
+  })
+
   scenario('The downstream service fails to respond', ({ given, and, when, then }) => {
     given('the downstream service shall not respond', () => {
 
     });
 
-    and(/^the proxy timeout is configured to (.*) second$/, (arg0) => {
-
+    and(/^the proxy timeout is configured to (.*) second$/, (proxyTimeoutSecs: string) => {
     });
 
     when('the client send a request to the proxy', () => {
@@ -29,7 +96,7 @@ defineFeature(feature, scenario => {
 
   scenario('Transparent proxying of requests downstream', ({ when, then, and }) => {
     when('the client send a request to the proxy', () => {
-
+      pending()
     });
 
     then('the request body should be received by the downstream service', () => {
@@ -51,7 +118,7 @@ defineFeature(feature, scenario => {
 
   scenario('Proxying downstream path URL', ({ given, when, then }) => {
     given(/^the downstream service URL is configured as (.*)$/, (arg0) => {
-
+      pending()
     });
 
     when('the request path "/foo/bar/baz?something=awesome" is sent to the proxy', (arg0) => {
@@ -65,7 +132,7 @@ defineFeature(feature, scenario => {
 
   scenario('Response bodies are returned upstream', ({ given, when, then, and }) => {
     given('the downstream service shall respond with a response body', () => {
-
+      pending()
     });
 
     when('the client sends a request to the proxy', () => {
@@ -81,109 +148,41 @@ defineFeature(feature, scenario => {
     });
   });
 
+
+
   scenario('Responses are returned from downstream', ({ given, when, then }) => {
-    given(/^the downstream service shall return (.*)$/, (arg0) => {
-
+    beforeEach(() => {
+      fetchMock.reset()
     });
 
-    when(/^the client sends (.*) a request to the proxy$/, (arg0) => {
-
+    given(/^the downstream service shall return (\d+)$/, async (statusCode: string) => {
+      fetchMock.mock({
+        response: { status: statusCode },
+        matcher: proxyUrl
+      })
     });
 
-    then(/^the proxy return code should be (.*)$/, (arg0) => {
+    when(/^the client sends (.*) a request to the proxy$/, async (httpMethod: string) => {
+      const event: ALBEvent = {
+        requestContext: {
+          elb: { targetGroupArn: "aws:arn:fake" }
+        },
+        httpMethod,
+        path: "/downstream",
+        queryStringParameters: {},
+        headers: {
+          "x-forwarded-proto": "https",
+          host: "localhost"
+        },
+        isBase64Encoded: false,
+        body: null
+      }
 
+      response = await sendProxy(event);
+    });
+
+    then(/^the proxy return code should be (\d+)$/, (statusCode: string) => {
+      expect(response.statusCode).toBe(statusCode)
     });
   });
-
-  // let requestBody: string
-  // let response: Response
-
-  // scenario("Post proxy is successfully sent", ({given, when, then}) => {
-  //   given("we have an MVP proxy", () => {
-  //     //what do we do here?
-  //   })
-
-  //   given("a http post request body", () => {
-  //     requestBody = JSON.stringify({
-  //       message: `Test execution at timestamp: ${Date.now()}`,
-  //     })
-  //   })
-
-  //   when("we post the request to the MVP proxy endpoint successfully", async () => {
-  //     response = await fetch(`${proxyUrl}`, {
-  //       method: "POST",
-  //       body: requestBody
-  //     })
-  //   })
-
-  //   then("the return code will be 201", () => {
-  //     expect(response.status).toBe(201)
-  //   })
-  // })
-
-  // scenario('Post proxy fails', ({ given, and, when, then }) => {
-  //   given('we have an MVP proxy', () => {
-
-  //   })
-
-  //   and('a http post request body', () => {
-
-  //   })
-
-  //   when('we post the request to the MVP proxy endpoint unsuccessfully', () => {
-
-  //   })
-
-  //   then("the return code will be 500", () => {
-
-  //   })
-  // })
-
-  // scenario('Delete proxy succeeds', ({ given, and, when, then }) => {
-  //   given('we have an MVP proxy', () => {
-
-  //   })
-
-  //   and('a http post request body', () => {
-
-  //   })
-
-  //   when('we post the request to the MVP proxy endpoint successfully', () => {
-
-  //   })
-
-  //   and('Then delete the resource with the same identifier', () => {
-
-  //   })
-
-  //   then("a get request for a resource with same identifier should give return code 404", () => {
-
-  //   })
-  // })
-
-  // scenario('Get proxy succeeds', ({ given, and, when, then }) => {
-  //   given('we have an MVP proxy', () => {
-
-  //   })
-
-  //   and('a http post request body', () => {
-
-  //   })
-
-  //   when('we post the request to the MVP proxy endpoint successfully', () => {
-
-  //   })
-
-  //   and('Then get the request with the same identifier', () => {
-
-  //   })
-
-  //   then("the return code will be 200", () => {
-
-  //   })
-
-  //   and('the content returned should match the content posted', () => {
-
-  //   })
-  // })
 })

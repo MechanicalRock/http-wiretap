@@ -12,6 +12,8 @@ Rules:
  - No modification of response bodies - if they contain absolute URLs, it's not our problem
  - Downstream service is configured as a URL
 
+
+@complete
 Scenario Outline: Responses are returned from downstream
   Given the downstream service shall return <return_code>
   When the client sends <http_method> a request to the proxy
@@ -25,6 +27,7 @@ Scenario Outline: Responses are returned from downstream
   | GET         | 404         |
   | POST        | 500         |
 
+@dev
 Scenario: The downstream service fails to respond
   Given the downstream service shall not respond
   And the proxy timeout is configured to 1 second
