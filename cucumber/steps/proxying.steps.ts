@@ -5,6 +5,7 @@ import { sendProxy } from "../../src/handler"
 
 const feature = loadFeature("cucumber/features/proxying.feature")
 const proxyUrl = "https://localhost:8085/downstream"
+const proxyUrlWithParams = "https://localhost:8085/downstream?foo=param1&bar=param2"
 
 
 defineFeature(feature, scenario => {
@@ -30,13 +31,16 @@ defineFeature(feature, scenario => {
       },
       httpMethod,
       path: "/downstream",
-      queryStringParameters: {},
+      queryStringParameters: {
+        foo: "param1",
+        bar: "param2"
+      },
       headers: {
         "x-forwarded-proto": "https",
         host: "localhost"
       },
       isBase64Encoded: false,
-      body: null
+      body: "The request body"
     }
 
     const startTime = Date.now()
@@ -45,18 +49,18 @@ defineFeature(feature, scenario => {
     return response
   }
 
-  beforeEach( () => {
+  beforeEach(() => {
     givenLambdaProxyHasBeenConfigured(proxyUrl)
     givenProxyTimeoutIsConfigured("30000");
   })
 
   describe('PROXY_URL is a required environment variable', () => {
-    it('should fail when not set', async (done)=> {
+    it('should fail when not set', async (done) => {
       delete process.env.PROXY_URL
-      try{
+      try {
         await whenTheClientSendsARequestToTheProxy('GET')
         done.fail("Expected error to be thrown")
-      }catch(err){
+      } catch (err) {
         expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
         done()
       }
@@ -65,22 +69,22 @@ defineFeature(feature, scenario => {
 
     it('should fail when set to an invalid URL', async (done) => {
       process.env.PROXY_URL = "localhost 8080"
-      try{
+      try {
         await whenTheClientSendsARequestToTheProxy('GET')
         done.fail("Expected error to be thrown")
-      }catch(err){
+      } catch (err) {
         expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
         done()
       }
 
     })
 
-    it('should fail when set to an empty string URL', async(done) => {
+    it('should fail when set to an empty string URL', async (done) => {
       process.env.PROXY_URL = ""
-      try{
+      try {
         await whenTheClientSendsARequestToTheProxy('GET')
         done.fail("Expected error to be thrown")
-      }catch(err){
+      } catch (err) {
         expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
         done()
       }
@@ -93,7 +97,7 @@ defineFeature(feature, scenario => {
         res()
       }, 500000))
 
-      fetchMock.post(proxyUrl, longDelayedResponse);
+      fetchMock.post(proxyUrlWithParams, longDelayedResponse);
     });
 
     and(/^the proxy timeout is configured to (.*) second$/, (proxyTimeoutSecs: string) => {
@@ -107,29 +111,44 @@ defineFeature(feature, scenario => {
     });
 
     and(/^the proxy should return within (.*) seconds$/, (elapsedTime: string) => {
-      expect(downstreamRequestElapsedTimeMillis).toBeLessThan(Number(elapsedTime)* 1000)
+      expect(downstreamRequestElapsedTimeMillis).toBeLessThan(Number(elapsedTime) * 1000)
     });
   });
 
   scenario('Transparent proxying of requests downstream', ({ when, then, and }) => {
-    when('the client send a request to the proxy', () => {
-      pending()
-    });
 
+    
+    when('the client send a request to the proxy', async () => {
+      // TODO - this should be in a beforEach - but fails.  WHY???
+      fetchMock.reset()
+      fetchMock.post(proxyUrlWithParams, 200)
+
+      await whenTheClientSendsARequestToTheProxyDefault()
+    });
+    
     then('the request body should be received by the downstream service', () => {
-
+      const lastOptions: any = fetchMock.lastOptions()
+      expect(lastOptions.body).toBeDefined()
+      expect(lastOptions.body).toEqual("The request body")
     });
-
+    
     and('the request headers should be received by the downstream service', () => {
-
+      const lastOptions = fetchMock.lastOptions()
+      expect(lastOptions.headers).toBeDefined()
+      expect(lastOptions.headers).toEqual({
+        "x-forwarded-proto": "https",
+        host: "localhost"
+      })
     });
-
+    
     and('the request parameters should be received by the downstream service', () => {
-
+      const url = fetchMock.lastUrl()
+      expect(url).toEqual(`${proxyUrl}?foo=param1&bar=param2`)
+      
     });
 
     and('the request path should be received by the downstream service', () => {
-
+      expect(fetchMock.lastUrl()).toContain('/downstream')
     });
   });
 
@@ -175,7 +194,7 @@ defineFeature(feature, scenario => {
     given(/^the downstream service shall return (\d+)$/, async (statusCode: string) => {
       fetchMock.mock({
         response: { status: statusCode },
-        matcher: proxyUrl
+        matcher: proxyUrlWithParams
       })
     });
 
