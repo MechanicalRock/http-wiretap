@@ -9,7 +9,7 @@ const proxyUrl = "https://localhost:8085/downstream"
 
 defineFeature(feature, scenario => {
   let response: ALBResult
-  let downstreamRequestElapsedTime: number
+  let downstreamRequestElapsedTimeMillis: number
 
   function givenLambdaProxyHasBeenConfigured(proxyUrl: string) {
     process.env.PROXY_URL = proxyUrl
@@ -37,7 +37,8 @@ defineFeature(feature, scenario => {
 
     const startTime = Date.now()
     response = await sendProxy(event);
-    downstreamRequestElapsedTime = Date.now() - startTime
+    downstreamRequestElapsedTimeMillis = Date.now() - startTime
+    return response
   }
 
   beforeEach( () => {
@@ -95,16 +96,16 @@ defineFeature(feature, scenario => {
       givenProxyTimeoutIsConfigured(proxyTimeoutSecs)
     });
 
-    when('the client send a request to the proxy', () => {
-      whenTheClientSendsARequestToTheProxy("POST")
+    when('the client send a request to the proxy', async () => {
+      response = await whenTheClientSendsARequestToTheProxy("POST")
     });
 
-    then(/^the proxy return code should be (.*)$/, (statusCode: string) => {
-      expect(response.statusCode).toBe(statusCode)
+    then(/^the proxy return code should be (\d+)$/, (statusCode: string) => {
+      expect(response.statusCode).toEqual(Number(statusCode))
     });
 
     and(/^the proxy should return within (.*) seconds$/, (elapsedTime: string) => {
-      expect(downstreamRequestElapsedTime).toBe(Number(elapsedTime))
+      expect(downstreamRequestElapsedTimeMillis).toBeLessThan(Number(elapsedTime)* 1000)
     });
   });
 

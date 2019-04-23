@@ -7,13 +7,14 @@ export const isValid = (proxyUrl: string):boolean => {
 }
 
 export const isTimedoutError = (err) => {
-  // return err instanceof ABORTERRO
-  return err.toString().includes("aborted")
+
+  // Blocked in testing by https://github.com/wheresrhys/fetch-mock/pull/418
+  const isMocked = err.toString().includes("aborted")
+  return err.name == 'AbortError' || isMocked
 }
 
-const controller = new AbortController()
-
 export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
+  const controller = new AbortController()
   // const { path, headers: { ['x-forwarded-proto']: protocol, host }, httpMethod } = event
   const { httpMethod } = event
 
@@ -24,7 +25,6 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
   }
 
   const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS)
-
   setTimeout(() => {
     controller.abort()
   }, proxyTimeoutSeconds)
@@ -59,6 +59,8 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
         },
         body: null
       };
+    } else {
+      throw e
     }
   }
 
