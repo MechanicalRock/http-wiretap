@@ -1,8 +1,9 @@
 service:
-  name: aws-nodejs-typescript
+  name: wiretap-spike
 
 plugins:
   - serverless-webpack
+  - serverless-pseudo-parameters
 
 provider:
   name: aws
@@ -10,33 +11,30 @@ provider:
 
 custom:
   proxy:
-    url: "http://localhost:8080"
-    timeout: 60
+    url: ${opt:proxyUrl}
+    timeout: ${opt:proxyTimeout}
   vpc:
     id: "vpc-0b9c087f45dcb5a84"
-    subnetIds:
-      - "subnet-04b8dfbd46f30e13e"
-      - "subnet-01cebe6e58176737e"
-      - "subnet-0b468a68422d356f3"
+    subnets: "subnet-04b8dfbd46f30e13e,subnet-01cebe6e58176737e,subnet-0b468a68422d356f3"
 
 functions:
-  sendProxyHandler:
-    handler: src/handler.sendProxy
+  sendProxy:
+    handler: build/handler.sendProxy
     vpc:
       securityGroupIds:
-        - !Ref LambdaSecurityGroup
-      subnetIds: ${self:custom.vpc.subnetIds}
+        - Ref: SendProxySecurityGroup
+      subnetIds: !Split [",", "${self:custom.vpc.subnets}"]
     environment:
       PROXY_URL: ${self:custom.proxy.url}
       PROXY_TIMEOUT_SECONDS: ${self:custom.proxy.timeout}
 
 resources:
   Resources:
-    LambdaSecurityGroup:
+    sendProxySecurityGroup:
       Type: AWS::EC2::SecurityGroup
       Properties:
-        GroupName: LambdaSecurityGroup
-        GroupDescription: "Lambda Security Group"
+        GroupName: SendProxySecurityGroup
+        GroupDescription: "Lambda Security Group for sendProxy function"
         VpcId: ${self:custom.vpc.id}
         SecurityGroupIngress:
           - SourceSecurityGroupId: !Ref ALBSecurityGroupSendProxy
@@ -44,7 +42,7 @@ resources:
             FromPort: 5050
             ToPort: 5050
 
-    ALBSecurityGroupSendProxy:
+    albSecurityGroupSendProxy:
       Type: AWS::EC2::SecurityGroup
       Properties:
         VpcId: ${self:custom.vpc.id}
@@ -56,33 +54,50 @@ resources:
             FromPort: 5050
             ToPort: 5050
 
-    ALB:
+    serviceALB:
       Type: AWS::ElasticLoadBalancingV2::LoadBalancer
       Properties:
         Type: application
         Scheme: internal
         IpAddressType: ipv4
-        Subnets: ${self:custom.vpc.subnetIds}
+        Subnets: !Split [",", "${self:custom.vpc.subnets}"]
         SecurityGroups:
           - !Ref ALBSecurityGroupSendProxy
 
-    ALBListenerSendProxy:
+    albListenerSendProxy:
       Type: AWS::ElasticLoadBalancingV2::Listener
       Properties:
         Port: 5050
-        LoadBalancerArn: !Ref ALB
+        LoadBalancerArn: !Ref ServiceALB
         Protocol: HTTP
         # Protocol: HTTPS
-        # CertificateArn: "xxx" Eventually will be HTTPS once we have a ACM Cert Setup
+        # CertificateArn: "xxx" Eventually will be HTTPS once we have a ACM Cert Setup?
         DefaultActions:
           - Type: forward
             TargetGroupArn: !Ref SendProxyTargetGroup
 
-    SendProxyTargetGroup:
+    sendProxyInvocationELBPermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: SendProxyTargetGroup
+      Properties:
+        Action: lambda:InvokeFunction
+        FunctionName: "arn:aws:lambda:${self:provider.region}:#{AWS::AccountId}:function:${self:service}-sendProxy-${self:provider.stage}"
+        Principal: elasticloadbalancing.amazonaws.com
+        SourceArn: !Ref SendProxyTargetGroup
+
+    sendProxyTargetGroup:
       Type: AWS::ElasticLoadBalancingV2::TargetGroup
       Properties:
         TargetType: lambda
         Targets:
-          - Id: !GetAtt sendProxyLambdaFunction.Arn
+          - Id: "arn:aws:lambda:${self:provider.region}:#{AWS::AccountId}:function:${self:service}-sendProxy-${self:provider.stage}"
 
-
+  Outputs:
+    serviceElbDnsName:
+      Value:
+        Fn::Join:
+          - '-'
+          - - Ref: "AWS::StackName"
+          - - "serviceElbDnsName"
+      Export:
+        Name: !GetAtt ServiceALB.DNSName

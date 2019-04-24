@@ -3,12 +3,16 @@
     "lib": ["es2017", "dom"],
     "moduleResolution": "node",
     "noUnusedLocals": true,
-    "noUnusedParameters": false,
+    "noUnusedParameters": true,
     "sourceMap": true,
     "target": "es2017",
-    "outDir": "lib"
+    "outDir": "build",
+    "skipLibCheck": true
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "build",
+    "tests",
+    "cucumber"
   ]
 }
