@@ -1,6 +1,7 @@
 import AbortController from 'abort-controller';
 import { ALBEvent, ALBResult } from 'aws-lambda';
 import { isWebUri } from 'valid-url';
+import "isomorphic-fetch"
 
 export const isValid = (proxyUrl: string): boolean => {
   return isWebUri(proxyUrl) !== undefined;
@@ -39,7 +40,7 @@ export const encodeResponseHeaders = (response: Response): ALBResponseHeaders =>
 const configureTimeout = (): AbortSignal => {
   const controller = new AbortController()
   const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS)
- 
+
   setTimeout(() => {
     controller.abort()
   }, proxyTimeoutSeconds)

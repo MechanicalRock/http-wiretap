@@ -14,15 +14,17 @@ custom:
     url: ${opt:proxyUrl}
     timeout: ${opt:proxyTimeout}
   vpc:
-    id: "vpc-0b9c087f45dcb5a84"
-    subnets: "subnet-04b8dfbd46f30e13e,subnet-01cebe6e58176737e,subnet-0b468a68422d356f3"
+    id: ${opt:vpcId}
+    subnets: ${opt:subnetIds}
+  wiretap:
+    port: 5050
 
 functions:
   sendProxy:
     handler: build/handler.sendProxy
     vpc:
       securityGroupIds:
-        - Ref: SendProxySecurityGroup
+        - Ref: sendProxySecurityGroup
       subnetIds: !Split [",", "${self:custom.vpc.subnets}"]
     environment:
       PROXY_URL: ${self:custom.proxy.url}
@@ -37,67 +39,70 @@ resources:
         GroupDescription: "Lambda Security Group for sendProxy function"
         VpcId: ${self:custom.vpc.id}
         SecurityGroupIngress:
-          - SourceSecurityGroupId: !Ref ALBSecurityGroupSendProxy
+          - SourceSecurityGroupId: !Ref albSecurityGroupSendProxy
             IpProtocol: tcp
-            FromPort: 5050
-            ToPort: 5050
+            FromPort: ${self:custom.wiretap.port}
+            ToPort: ${self:custom.wiretap.port}
 
     albSecurityGroupSendProxy:
       Type: AWS::EC2::SecurityGroup
       Properties:
         VpcId: ${self:custom.vpc.id}
         GroupName: "SendProxyALBSecurityGroup"
-        GroupDescription: "ALB Security Group"
+        GroupDescription: "ALB Security Group to define allowed traffic"
         SecurityGroupIngress:
-          - CidrIp: 10.0.0.0/8
+          - CidrIp: 0.0.0.0/0
+            # CidrIp: 10.0.0.0/8
             IpProtocol: tcp
-            FromPort: 5050
-            ToPort: 5050
+            FromPort: ${self:custom.wiretap.port}
+            ToPort: ${self:custom.wiretap.port}
 
-    serviceALB:
+    albService:
       Type: AWS::ElasticLoadBalancingV2::LoadBalancer
       Properties:
         Type: application
-        Scheme: internal
+        # Scheme: internal
+        Scheme: internet-facing
         IpAddressType: ipv4
         Subnets: !Split [",", "${self:custom.vpc.subnets}"]
         SecurityGroups:
-          - !Ref ALBSecurityGroupSendProxy
+          - !Ref albSecurityGroupSendProxy
 
     albListenerSendProxy:
       Type: AWS::ElasticLoadBalancingV2::Listener
       Properties:
-        Port: 5050
-        LoadBalancerArn: !Ref ServiceALB
+        Port: ${self:custom.wiretap.port}
+        LoadBalancerArn: !Ref albService
         Protocol: HTTP
         # Protocol: HTTPS
-        # CertificateArn: "xxx" Eventually will be HTTPS once we have a ACM Cert Setup?
+        # Certificates:
+        #   - CertificateArn: "xxx" Eventually will be HTTPS once we have a ACM Cert Setup?
         DefaultActions:
           - Type: forward
-            TargetGroupArn: !Ref SendProxyTargetGroup
+            TargetGroupArn: !Ref sendProxyTargetGroup
 
     sendProxyInvocationELBPermission:
       Type: AWS::Lambda::Permission
-      DependsOn: SendProxyTargetGroup
+      DependsOn: SendProxyLambdaFunction
       Properties:
         Action: lambda:InvokeFunction
-        FunctionName: "arn:aws:lambda:${self:provider.region}:#{AWS::AccountId}:function:${self:service}-sendProxy-${self:provider.stage}"
+        FunctionName: !GetAtt SendProxyLambdaFunction.Arn
         Principal: elasticloadbalancing.amazonaws.com
-        SourceArn: !Ref SendProxyTargetGroup
+        SourceArn: arn:aws:elasticloadbalancing:#{AWS::Region}:#{AWS::AccountId}:targetgroup/*
 
     sendProxyTargetGroup:
       Type: AWS::ElasticLoadBalancingV2::TargetGroup
       Properties:
         TargetType: lambda
         Targets:
-          - Id: "arn:aws:lambda:${self:provider.region}:#{AWS::AccountId}:function:${self:service}-sendProxy-${self:provider.stage}"
+          - Id: !GetAtt SendProxyLambdaFunction.Arn
 
   Outputs:
     serviceElbDnsName:
-      Value:
-        Fn::Join:
-          - '-'
-          - - Ref: "AWS::StackName"
-          - - "serviceElbDnsName"
+      Value: !GetAtt albService.DNSName
       Export:
-        Name: !GetAtt ServiceALB.DNSName
+        Name:
+          Fn::Join:
+            - '-'
+            - - Ref: "AWS::StackName"
+              - "serviceElbDnsName"

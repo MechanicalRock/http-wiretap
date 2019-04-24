@@ -10,20 +10,21 @@
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
-    "node-fetch": "^2.3.0",
+    "isomorphic-fetch": "^2.2.1",
     "valid-url": "^1.0.9"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.17",
     "@types/fetch-mock": "^7.2.3",
+    "@types/isomorphic-fetch": "0.0.35",
     "@types/jest": "^24.0.11",
     "@types/node": "^8.10.45",
-    "@types/node-fetch": "^2.3.2",
     "@types/valid-url": "^1.0.2",
     "fetch-mock": "^7.3.3",
     "jest": "^24.7.1",
     "jest-circus": "^24.7.1",
     "jest-cucumber": "^2.0.11",
+    "node-fetch": "^2.3.0",
     "serverless": "^1.41.1",
     "serverless-pseudo-parameters": "^2.4.0",
     "serverless-webpack": "^5.1.1",
