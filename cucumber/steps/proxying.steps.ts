@@ -5,7 +5,7 @@ import { sendProxy } from "../../src/handler"
 
 const feature = loadFeature("cucumber/features/proxying.feature")
 const proxyUrl = "https://localhost:8085/downstream"
-const proxyUrlWithParams = "https://localhost:8085/downstream?foo=param1&bar=param2"
+const proxiedUrlMatcher = /downstream/
 
 
 defineFeature(feature, scenario => {
@@ -20,7 +20,7 @@ defineFeature(feature, scenario => {
     process.env.PROXY_TIMEOUT_SECONDS = proxyTimeoutSecs
   }
 
-  async function whenTheClientSendsARequestToTheProxyDefault() {
+  async function whenTheClientSendsAnyRequestToTheProxy() {
     return whenTheClientSendsARequestToTheProxy('POST')
   }
 
@@ -97,14 +97,14 @@ defineFeature(feature, scenario => {
         res()
       }, 500000))
 
-      fetchMock.post(proxyUrlWithParams, longDelayedResponse);
+      fetchMock.post(proxiedUrlMatcher, longDelayedResponse);
     });
 
     and(/^the proxy timeout is configured to (.*) second$/, (proxyTimeoutSecs: string) => {
       givenProxyTimeoutIsConfigured(proxyTimeoutSecs)
     });
 
-    when('the client send a request to the proxy', whenTheClientSendsARequestToTheProxyDefault);
+    when('the client send a request to the proxy', whenTheClientSendsAnyRequestToTheProxy);
 
     then(/^the proxy return code should be (\d+)$/, (statusCode: string) => {
       expect(response.statusCode).toEqual(Number(statusCode))
@@ -121,9 +121,9 @@ defineFeature(feature, scenario => {
     when('the client send a request to the proxy', async () => {
       // TODO - this should be in a beforEach - but fails.  WHY???
       fetchMock.reset()
-      fetchMock.post(proxyUrlWithParams, 200)
+      fetchMock.post(/downstream/, 200)
 
-      await whenTheClientSendsARequestToTheProxyDefault()
+      await whenTheClientSendsAnyRequestToTheProxy()
     });
     
     then('the request body should be received by the downstream service', () => {
@@ -146,37 +146,32 @@ defineFeature(feature, scenario => {
       expect(url).toEqual(`${proxyUrl}?foo=param1&bar=param2`)
       
     });
-
+    
     and('the request path should be received by the downstream service', () => {
       expect(fetchMock.lastUrl()).toContain('/downstream')
     });
   });
 
-  scenario('Proxying downstream path URL', ({ given, when, then }) => {
-    given(/^the downstream service URL is configured as (.*)$/, (arg0) => {
-      pending()
-    });
-
-    when('the request path "/foo/bar/baz?something=awesome" is sent to the proxy', (arg0) => {
-
-    });
-
-    then('the downstream service should receive the path "/mypath/foo/bar/baz?something=awesome"', (arg0) => {
-
-    });
-  });
-
   scenario('Response bodies are returned upstream', ({ given, when, then, and }) => {
+
+    const downstreamResponseBody = {
+      foo: 'bar'
+    }
+
     given('the downstream service shall respond with a response body', () => {
-      pending()
+      // TODO - this should be in a beforEach - but fails.  WHY???
+      fetchMock.reset()
+      fetchMock.post(proxiedUrlMatcher, downstreamResponseBody)
     });
-
-    when('the client sends a request to the proxy', () => {
-
+    
+    when('the client sends a request to the proxy', async () => {
+      await whenTheClientSendsARequestToTheProxy('POST')
     });
-
+    
     then('the client should receive the response body from the downstream service', () => {
-
+      expect(response.body).toBeDefined()
+      const stringifiedJsonBody = '{"foo":"bar"}'
+      expect(response.body).toEqual(stringifiedJsonBody)
     });
 
     and('the client should receive the response headers from the downstream service', () => {
@@ -194,7 +189,7 @@ defineFeature(feature, scenario => {
     given(/^the downstream service shall return (\d+)$/, async (statusCode: string) => {
       fetchMock.mock({
         response: { status: statusCode },
-        matcher: proxyUrlWithParams
+        matcher: proxiedUrlMatcher
       })
     });
 

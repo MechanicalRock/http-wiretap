@@ -35,7 +35,7 @@ Scenario: The downstream service fails to respond
   Then the proxy return code should be 502
   And the proxy should return within 1.1 seconds
 
-@dev
+@complete
 Scenario: Transparent proxying of requests downstream
   When the client send a request to the proxy
   Then the request body should be received by the downstream service
@@ -43,11 +43,7 @@ Scenario: Transparent proxying of requests downstream
   And the request parameters should be received by the downstream service
   And the request path should be received by the downstream service
 
-Scenario: Proxying downstream path URL
-  Given the downstream service URL is configured as "http://foo.example.com/mypath/"
-  When the request path "/foo/bar/baz?something=awesome" is sent to the proxy
-  Then the downstream service should receive the path "/mypath/foo/bar/baz?something=awesome"
-
+@dev
 Scenario: Response bodies are returned upstream
   Given the downstream service shall respond with a response body
   When the client sends a request to the proxy

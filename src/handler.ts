@@ -20,7 +20,6 @@ export const urlAndParams = (url: string, params: any) => {
 
 export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
   const controller = new AbortController()
-  // const { path, headers: { ['x-forwarded-proto']: protocol, host }, httpMethod } = event
   const { httpMethod, headers, body, queryStringParameters } = event
 
   const proxyUrl = process.env.PROXY_URL
@@ -35,8 +34,7 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
   }, proxyTimeoutSeconds)
 
   try {
-    const response = await fetch(urlAndParams(proxyUrl, queryStringParameters), {
-      // const response = await fetch(`${protocol}://${host}${path}`, {
+    const response: Response = await fetch(urlAndParams(proxyUrl, queryStringParameters), {
       method: httpMethod,
       signal: controller.signal,
       headers,
@@ -51,7 +49,7 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
         'Set-cookie': 'cookies',
         'Content-Type': 'application/json',
       },
-      body: null
+      body: await response.text()
     };
 
   } catch (e) {
