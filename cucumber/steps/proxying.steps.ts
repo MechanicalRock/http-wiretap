@@ -8,6 +8,15 @@ const feature = loadFeature("cucumber/features/proxying.feature")
 const proxyUrl = "https://localhost:8085/downstream"
 const proxiedUrlMatcher = /downstream/
 
+const runTimedCallback = async (cb: () => Promise<ALBResult>) => {
+  const startTime = Date.now()
+  const response = await cb()
+
+  return {
+    elapsedTime: Date.now() - startTime,
+    response
+  }
+}
 
 defineFeature(feature, scenario => {
   let response: ALBResult
@@ -44,10 +53,10 @@ defineFeature(feature, scenario => {
       body: "The request body"
     }
 
-    const startTime = Date.now()
-    response = await sendProxy(event);
-    downstreamRequestElapsedTimeMillis = Date.now() - startTime
-    return response
+    const executionResult = await runTimedCallback(() => sendProxy(event));
+
+    downstreamRequestElapsedTimeMillis = executionResult.elapsedTime
+    response = executionResult.response
   }
 
   beforeEach(() => {
@@ -58,7 +67,7 @@ defineFeature(feature, scenario => {
   afterEach(() => {
     fetchMock.reset()
   })
-  
+
   scenario('The downstream service fails to respond', ({ given, and, when, then }) => {
     given('the downstream service shall not respond', () => {
       const longDelayedResponse = new Promise(res => setTimeout(() => {
