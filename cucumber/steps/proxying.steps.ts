@@ -1,7 +1,8 @@
 import { defineFeature, loadFeature } from "jest-cucumber"
 import * as fetchMock from "fetch-mock"
 import { ALBEvent, ALBResult } from "aws-lambda";
-import { sendProxy } from "../../src/handler"
+import { sendProxy, encodeResponseHeaders } from "../../src/handler"
+import { Response } from 'node-fetch'
 
 const feature = loadFeature("cucumber/features/proxying.feature")
 const proxyUrl = "https://localhost:8085/downstream"
@@ -97,6 +98,7 @@ defineFeature(feature, scenario => {
         res()
       }, 500000))
 
+      fetchMock.reset()
       fetchMock.post(proxiedUrlMatcher, longDelayedResponse);
     });
 
@@ -117,7 +119,7 @@ defineFeature(feature, scenario => {
 
   scenario('Transparent proxying of requests downstream', ({ when, then, and }) => {
 
-    
+
     when('the client send a request to the proxy', async () => {
       // TODO - this should be in a beforEach - but fails.  WHY???
       fetchMock.reset()
@@ -125,13 +127,13 @@ defineFeature(feature, scenario => {
 
       await whenTheClientSendsAnyRequestToTheProxy()
     });
-    
+
     then('the request body should be received by the downstream service', () => {
       const lastOptions: any = fetchMock.lastOptions()
       expect(lastOptions.body).toBeDefined()
       expect(lastOptions.body).toEqual("The request body")
     });
-    
+
     and('the request headers should be received by the downstream service', () => {
       const lastOptions = fetchMock.lastOptions()
       expect(lastOptions.headers).toBeDefined()
@@ -140,13 +142,13 @@ defineFeature(feature, scenario => {
         host: "localhost"
       })
     });
-    
+
     and('the request parameters should be received by the downstream service', () => {
       const url = fetchMock.lastUrl()
       expect(url).toEqual(`${proxyUrl}?foo=param1&bar=param2`)
-      
+
     });
-    
+
     and('the request path should be received by the downstream service', () => {
       expect(fetchMock.lastUrl()).toContain('/downstream')
     });
@@ -158,16 +160,31 @@ defineFeature(feature, scenario => {
       foo: 'bar'
     }
 
+    const downstreamResponse: Response = new Response(JSON.stringify(downstreamResponseBody), {
+      headers: {
+        'Content-Type': "application/json",
+        'Accept-Type': "application/text"
+      },
+      status: 200
+    })
+
     given('the downstream service shall respond with a response body', () => {
       // TODO - this should be in a beforEach - but fails.  WHY???
       fetchMock.reset()
-      fetchMock.post(proxiedUrlMatcher, downstreamResponseBody)
+      // var opt = {}
+      // opt = {
+      //   headers: {
+      //     'Content-Type': "application/json",
+      //     'Accept-Type': "application/text"
+      //   }
+      // }
+      fetchMock.post(proxiedUrlMatcher, downstreamResponse)
     });
-    
+
     when('the client sends a request to the proxy', async () => {
       await whenTheClientSendsARequestToTheProxy('POST')
     });
-    
+
     then('the client should receive the response body from the downstream service', () => {
       expect(response.body).toBeDefined()
       const stringifiedJsonBody = '{"foo":"bar"}'
@@ -175,7 +192,13 @@ defineFeature(feature, scenario => {
     });
 
     and('the client should receive the response headers from the downstream service', () => {
-
+      expect(response.headers).toBeDefined()
+      // Header names are case insensitive
+      // https://stackoverflow.com/a/5259004/10450721
+      expect(response.headers).toEqual({
+        'content-type': "application/json",
+        'accept-type': "application/text"
+      })
     });
   });
 
@@ -199,4 +222,12 @@ defineFeature(feature, scenario => {
       expect(response.statusCode).toBe(statusCode)
     });
   });
+
+  describe('#encodeResponseHeaders', () => {
+    it('should return {} if headers is not defined', () => {
+      const response = new Response('something')
+      // typing mismatch?
+      expect(encodeResponseHeaders(response as any)).toEqual({})
+    })
+  })
 })

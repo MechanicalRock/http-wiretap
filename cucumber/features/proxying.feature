@@ -43,7 +43,7 @@ Scenario: Transparent proxying of requests downstream
   And the request parameters should be received by the downstream service
   And the request path should be received by the downstream service
 
-@dev
+@complete
 Scenario: Response bodies are returned upstream
   Given the downstream service shall respond with a response body
   When the client sends a request to the proxy
