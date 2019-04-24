@@ -8,13 +8,81 @@ provider:
   name: aws
   runtime: nodejs8.10
 
-functions:
-  hello:
-    handler: src/handler.hello
-    events:
-      - http:
-          method: get
-          path: hello
+custom:
+  proxy:
+    url: "http://localhost:8080"
+    timeout: 60
+  vpc:
+    id: "vpc-0b9c087f45dcb5a84"
+    subnetIds:
+      - "subnet-04b8dfbd46f30e13e"
+      - "subnet-01cebe6e58176737e"
+      - "subnet-0b468a68422d356f3"
 
-resources:  # CloudFormation template syntax
+functions:
+  sendProxyHandler:
+    handler: src/handler.sendProxy
+    vpc:
+      securityGroupIds:
+        - !Ref LambdaSecurityGroup
+      subnetIds: ${self:custom.vpc.subnetIds}
+    environment:
+      PROXY_URL: ${self:custom.proxy.url}
+      PROXY_TIMEOUT_SECONDS: ${self:custom.proxy.timeout}
+
+resources:
   Resources:
+    LambdaSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupName: LambdaSecurityGroup
+        GroupDescription: "Lambda Security Group"
+        VpcId: ${self:custom.vpc.id}
+        SecurityGroupIngress:
+          - SourceSecurityGroupId: !Ref ALBSecurityGroupSendProxy
+            IpProtocol: tcp
+            FromPort: 5050
+            ToPort: 5050
+
+    ALBSecurityGroupSendProxy:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        VpcId: ${self:custom.vpc.id}
+        GroupName: "SendProxyALBSecurityGroup"
+        GroupDescription: "ALB Security Group"
+        SecurityGroupIngress:
+          - CidrIp: 10.0.0.0/8
+            IpProtocol: tcp
+            FromPort: 5050
+            ToPort: 5050
+
+    ALB:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+        Type: application
+        Scheme: internal
+        IpAddressType: ipv4
+        Subnets: ${self:custom.vpc.subnetIds}
+        SecurityGroups:
+          - !Ref ALBSecurityGroupSendProxy
+
+    ALBListenerSendProxy:
+      Type: AWS::ElasticLoadBalancingV2::Listener
+      Properties:
+        Port: 5050
+        LoadBalancerArn: !Ref ALB
+        Protocol: HTTP
+        # Protocol: HTTPS
+        # CertificateArn: "xxx" Eventually will be HTTPS once we have a ACM Cert Setup
+        DefaultActions:
+          - Type: forward
+            TargetGroupArn: !Ref SendProxyTargetGroup
+
+    SendProxyTargetGroup:
+      Type: AWS::ElasticLoadBalancingV2::TargetGroup
+      Properties:
+        TargetType: lambda
+        Targets:
+          - Id: !GetAtt sendProxyLambdaFunction.Arn
+
+
