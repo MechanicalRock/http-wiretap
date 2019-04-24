@@ -1,7 +1,7 @@
 import { defineFeature, loadFeature } from "jest-cucumber"
 import * as fetchMock from "fetch-mock"
 import { ALBEvent, ALBResult } from "aws-lambda";
-import { sendProxy, encodeResponseHeaders } from "../../src/handler"
+import { sendProxy } from "../../src/handler"
 import { Response } from 'node-fetch'
 
 const feature = loadFeature("cucumber/features/proxying.feature")
@@ -55,50 +55,16 @@ defineFeature(feature, scenario => {
     givenProxyTimeoutIsConfigured("30000");
   })
 
-  describe('PROXY_URL is a required environment variable', () => {
-    it('should fail when not set', async (done) => {
-      delete process.env.PROXY_URL
-      try {
-        await whenTheClientSendsARequestToTheProxy('GET')
-        done.fail("Expected error to be thrown")
-      } catch (err) {
-        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
-        done()
-      }
-
-    })
-
-    it('should fail when set to an invalid URL', async (done) => {
-      process.env.PROXY_URL = "localhost 8080"
-      try {
-        await whenTheClientSendsARequestToTheProxy('GET')
-        done.fail("Expected error to be thrown")
-      } catch (err) {
-        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
-        done()
-      }
-
-    })
-
-    it('should fail when set to an empty string URL', async (done) => {
-      process.env.PROXY_URL = ""
-      try {
-        await whenTheClientSendsARequestToTheProxy('GET')
-        done.fail("Expected error to be thrown")
-      } catch (err) {
-        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
-        done()
-      }
-    })
+  afterEach(() => {
+    fetchMock.reset()
   })
-
+  
   scenario('The downstream service fails to respond', ({ given, and, when, then }) => {
     given('the downstream service shall not respond', () => {
       const longDelayedResponse = new Promise(res => setTimeout(() => {
         res()
       }, 500000))
 
-      fetchMock.reset()
       fetchMock.post(proxiedUrlMatcher, longDelayedResponse);
     });
 
@@ -119,10 +85,9 @@ defineFeature(feature, scenario => {
 
   scenario('Transparent proxying of requests downstream', ({ when, then, and }) => {
 
-
     when('the client send a request to the proxy', async () => {
-      // TODO - this should be in a beforEach - but fails.  WHY???
-      fetchMock.reset()
+      // Ideally this should be in a beforeEach as an implicit background step.
+      // However `beforeEach()` are not currently scoped in jest-cucumber - they run before EVERY scenario
       fetchMock.post(/downstream/, 200)
 
       await whenTheClientSendsAnyRequestToTheProxy()
@@ -169,15 +134,6 @@ defineFeature(feature, scenario => {
     })
 
     given('the downstream service shall respond with a response body', () => {
-      // TODO - this should be in a beforEach - but fails.  WHY???
-      fetchMock.reset()
-      // var opt = {}
-      // opt = {
-      //   headers: {
-      //     'Content-Type': "application/json",
-      //     'Accept-Type': "application/text"
-      //   }
-      // }
       fetchMock.post(proxiedUrlMatcher, downstreamResponse)
     });
 
@@ -202,12 +158,7 @@ defineFeature(feature, scenario => {
     });
   });
 
-
-
   scenario('Responses are returned from downstream', ({ given, when, then }) => {
-    beforeEach(() => {
-      fetchMock.reset()
-    });
 
     given(/^the downstream service shall return (\d+)$/, async (statusCode: string) => {
       fetchMock.mock({
@@ -223,11 +174,4 @@ defineFeature(feature, scenario => {
     });
   });
 
-  describe('#encodeResponseHeaders', () => {
-    it('should return {} if headers is not defined', () => {
-      const response = new Response('something')
-      // typing mismatch?
-      expect(encodeResponseHeaders(response as any)).toEqual({})
-    })
-  })
 })

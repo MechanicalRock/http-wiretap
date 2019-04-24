@@ -1,7 +1,6 @@
 import AbortController from 'abort-controller';
 import { ALBEvent, ALBResult } from 'aws-lambda';
 import { isWebUri } from 'valid-url';
-// import { Response } from 'node-fetch'
 
 export const isValid = (proxyUrl: string): boolean => {
   return isWebUri(proxyUrl) !== undefined;
@@ -37,8 +36,18 @@ export const encodeResponseHeaders = (response: Response): ALBResponseHeaders =>
   return headers
 }
 
-export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
+const configureTimeout = (): AbortSignal => {
   const controller = new AbortController()
+  const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS)
+ 
+  setTimeout(() => {
+    controller.abort()
+  }, proxyTimeoutSeconds)
+
+  return controller.signal
+}
+
+export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
   const { httpMethod, headers, body, queryStringParameters } = event
 
   const proxyUrl = process.env.PROXY_URL
@@ -47,15 +56,10 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
     throw new Error('process.env.PROXY_URL should be set to the downstream proxied URL')
   }
 
-  const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS)
-  setTimeout(() => {
-    controller.abort()
-  }, proxyTimeoutSeconds)
-
   try {
     const response: Response = await fetch(urlAndParams(proxyUrl, queryStringParameters), {
       method: httpMethod,
-      signal: controller.signal,
+      signal: configureTimeout(),
       headers,
       body
     })
@@ -76,11 +80,7 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
         isBase64Encoded: false,
         statusCode: 502,
         statusDescription: '502',
-        headers: {
-          'Set-cookie': 'cookies',
-          'Content-Type': 'application/json',
-        },
-        body: null
+        body: ""
       };
     } else {
       throw e

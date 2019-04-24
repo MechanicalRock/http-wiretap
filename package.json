@@ -36,7 +36,8 @@
   "license": "MIT",
   "jest": {
     "testMatch": [
-      "<rootDir>/cucumber/steps/*.steps.ts"
+      "<rootDir>/cucumber/steps/*.steps.ts",
+      "<rootDir>/tests/**/*.test.ts"
     ],
     "transform": {
       "^.+\\.ts?$": "<rootDir>/node_modules/ts-jest"
