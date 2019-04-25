@@ -26,6 +26,7 @@ export const getUnresponsive: APIGatewayProxyHandler = () => new Promise(done =>
 
 export const postRelayBack: APIGatewayProxyHandler = (event: APIGatewayEvent) => aResponse(201, JSON.stringify({
   headers: event.headers,
-  params: event.pathParameters,
+  params: event.queryStringParameters,
+  path: event.path,
   body: event.body
 }))
