@@ -1,0 +1,54 @@
+downstream:
+  name: wiretap-spike-test-infra
+
+plugins:
+  - serverless-webpack
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+
+functions:
+  getOk:
+    handler: build/handler.getOk
+    events:
+      - http:
+          method: get
+          path: downstream/ok
+
+  getNotFound:
+    handler: build/handler.getNotFound
+    events:
+      - http:
+          method: get
+          path: downstream/not-found
+
+  postCreated:
+    handler: build/handler.postCreated
+    events:
+      - http:
+          method: post
+          path: downstream/created
+
+  postServerError:
+    handler: build/handler.postServerError
+    events:
+      - http:
+          method: post
+          path: downstream/server-error
+
+  getUnresponsive:
+    handler: build/handler.getUnresponsive
+    environment:
+      DELAY_TIME_SECONDS: 30
+    events:
+      - http:
+          method: get
+          path: downstream/unresponsive
+
+  postRelayBack:
+    handler: build/handler.postRelayBack
+    events:
+      - http:
+          method: post
+          path: downstream/relay-back

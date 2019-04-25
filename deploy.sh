@@ -6,6 +6,8 @@ SUBNET_IDS=$5
 
 export AWS_SDK_LOAD_CONFIG=true
 
+npm run build
+
 npm run deploy -- \
   --proxyUrl ${PROXY_URL} \
   --proxyTimeout ${PROXY_TIMEOUT} \
