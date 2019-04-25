@@ -1,4 +1,4 @@
-downstream:
+service:
   name: wiretap-spike-test-infra
 
 plugins:
@@ -52,3 +52,13 @@ functions:
       - http:
           method: post
           path: downstream/relay-back
+
+resources:
+  Outputs:
+    serviceUrl:
+      Value:
+        Fn::Join:
+          - ""
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}/downstream"
