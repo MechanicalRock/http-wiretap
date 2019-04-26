@@ -1,7 +1,17 @@
-import AbortController from 'abort-controller';
+import { AbortController } from "abort-controller"
 import { ALBEvent, ALBResult } from 'aws-lambda';
 import { isWebUri } from 'valid-url';
 import "isomorphic-fetch"
+
+const configureTimeout = (): AbortSignal => {
+  // Ideally we have timeout OR signal, but for backward compability with fetch-mock we need to use signal
+  const controller = new AbortController()
+  const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS) * 1000
+
+  setTimeout(() => controller.abort(), proxyTimeoutSeconds)
+
+  return controller.signal
+}
 
 export const isValid = (proxyUrl: string): boolean => {
   return isWebUri(proxyUrl) !== undefined;
@@ -39,20 +49,9 @@ export const encodeResponseHeaders = (response: Response): ResponseHeader => {
 }
 
 const sanitiseResponseHeaders = (headers: ResponseHeader): ResponseHeader => {
-  // Simply copying this across produces SSL errors when lambda makes request to downstream service
+  // Copying the Host header across produces SSL errors when lambda makes request to downstream service
   delete headers['host']
   return headers
-}
-
-const configureTimeout = (): AbortSignal => {
-  const controller = new AbortController()
-  const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS) * 1000
-
-  setTimeout(() => {
-    controller.abort()
-  }, proxyTimeoutSeconds)
-
-  return controller.signal
 }
 
 export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
@@ -68,10 +67,11 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
 
     const response: Response = await fetch(fullPath, {
       method: httpMethod,
+      timeout: Number(process.env.PROXY_TIMEOUT_SECONDS) * 1000,
       signal: configureTimeout(),
       headers: sanitiseResponseHeaders(headers),
       body
-    })
+    } as RequestInit)
 
     const encodedHeaders = sanitiseResponseHeaders(encodeResponseHeaders(response))
 

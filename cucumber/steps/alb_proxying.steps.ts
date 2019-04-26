@@ -97,7 +97,7 @@ defineFeature(feature, scenario => {
   });
 
   scenario('Transparent proxying of requests downstream', ({ when, then, and }) => {
-    let responseData: any
+    let downstreamResponse: any
 
     when('the client send a request to the proxy', async () => {
       // This endpoint just spits back the original request's body, header and query back to caller
@@ -111,31 +111,33 @@ defineFeature(feature, scenario => {
         body: '{"firstName": "Tom", "lastName": "Jones"}'
       })
 
-      responseData = await response.json()
+      downstreamResponse = await response.json()
     });
 
     then('the request body should be received by the downstream service', async () => {
-      expect(responseData.body).toBeDefined()
-      expect(responseData.body).toEqual('{"firstName": "Tom", "lastName": "Jones"}')
+      expect(downstreamResponse.body).toBeDefined()
+      expect(downstreamResponse.body).toEqual('{"firstName": "Tom", "lastName": "Jones"}')
     });
 
     and('the request headers excluding the host should be received by the downstream service', () => {
-      expect(responseData.headers).toBeDefined()
-      expect(responseData.headers["accept-type"]).toBe('application/json')
-      expect(responseData.headers["content-type"]).toBe('application/json')
-      expect(responseData.headers["Host"]).not.toBe(proxyHost)
+      expect(downstreamResponse.headers).toBeDefined()
+      expect(downstreamResponse.headers["accept-type"]).toBe('application/json')
+      expect(downstreamResponse.headers["content-type"]).toBe('application/json')
+
+      // API Gateway headers seem to be in upper case
+      expect(downstreamResponse.headers["Host"]).not.toBe(proxyHost)
     });
 
     and('the request parameters should be received by the downstream service', () => {
-      expect(responseData.params).toBeDefined()
-      expect(responseData.params).toEqual({
+      expect(downstreamResponse.params).toBeDefined()
+      expect(downstreamResponse.params).toEqual({
         limit: '1000',
         ttl: '40'
       })
     });
 
     and('the request path should be received by the downstream service', () => {
-      expect(responseData.path).toEqual('/downstream/relay-back')
+      expect(downstreamResponse.path).toEqual('/downstream/relay-back')
     });
   });
 
@@ -150,10 +152,6 @@ defineFeature(feature, scenario => {
       // use fetch to call endpoint with method
       response = await fetch(`${serviceEndpoints[method][cannedStatusCode]}`, {
         method,
-        headers: {
-          authorization: 'ABC-123',
-          'content-type': 'application/json'
-        },
         body: '{}'
       })
     });
