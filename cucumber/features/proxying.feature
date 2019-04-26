@@ -11,7 +11,7 @@ Rules:
  - Distributed tracing is configured (XRay)
  - No modification of response bodies - if they contain absolute URLs, it's not our problem
  - Downstream service is configured as a URL
-
+ - Host request headers are not directly copied downstream and to client
 
 @complete
 Scenario Outline: Responses are returned from downstream
@@ -39,7 +39,7 @@ Scenario: The downstream service fails to respond
 Scenario: Transparent proxying of requests downstream
   When the client send a request to the proxy
   Then the request body should be received by the downstream service
-  And the request headers should be received by the downstream service
+  And the request headers excluding the host should be received by the downstream service
   And the request parameters should be received by the downstream service
   And the request path should be received by the downstream service
 

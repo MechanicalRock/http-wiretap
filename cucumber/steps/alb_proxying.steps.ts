@@ -1,22 +1,24 @@
 import { defineFeature, loadFeature } from "jest-cucumber"
 import "isomorphic-fetch"
 
+// When we warm lambdas behind a VPC, they usually have a ~20 sec cold start
 jest.setTimeout(30000)
 
 const feature = loadFeature("cucumber/features/proxying.feature")
-const proxyBaseUrl = "http://wiret-albSe-1VGDWATE2HD2B-1913174424.us-east-1.elb.amazonaws.com:5050"
+const proxyHost = "wiret-albSe-1VGDWATE2HD2B-1913174424.us-east-1.elb.amazonaws.com"
+const proxyPort = 5050
 const serviceEndpoints = {
   GET: {
-    "200": `${proxyBaseUrl}/downstream/ok`,
-    "404": `${proxyBaseUrl}/downstream/not-found`,
-    "200_SLOW_REPLY": `${proxyBaseUrl}/downstream/slow-reply`,
-    "200_FIXED_BODY": `${proxyBaseUrl}/downstream/fixed-body`
+    "200": `http://${proxyHost}:${proxyPort}/downstream/ok`,
+    "404": `http://${proxyHost}:${proxyPort}/downstream/not-found`,
+    "200_SLOW_REPLY": `http://${proxyHost}:${proxyPort}/downstream/slow-reply`,
+    "200_FIXED_BODY": `http://${proxyHost}:${proxyPort}/downstream/fixed-body`
   },
 
   POST: {
-    "201": `${proxyBaseUrl}/downstream/created`,
-    "500": `${proxyBaseUrl}/downstream/server-error`,
-    "201_RELAY_BACK": `${proxyBaseUrl}/downstream/relay-back`
+    "201": `http://${proxyHost}:${proxyPort}/downstream/created`,
+    "500": `http://${proxyHost}:${proxyPort}/downstream/server-error`,
+    "201_RELAY_BACK": `http://${proxyHost}:${proxyPort}/downstream/relay-back`
   }
 }
 
@@ -55,24 +57,17 @@ defineFeature(feature, scenario => {
     });
 
     when('the client sends a request to the proxy', async () => {
-      response = await fetch(endpoint, {
-        method: "GET",
-        headers: {
-          'content-type': 'application/json'
-        }
-      })
+      response = await fetch(endpoint, { method: "GET" })
     });
 
-    then('the client should receive the response body from the downstream service', () => {
+    then('the client should receive the response body from the downstream service', async () => {
       expect(response.body).toBeDefined()
-      expect(response.body).toEqual('{"firstName": "John", "lastName": "Doe"}')
+      expect(await response.json()).toEqual({"firstName": "John", "lastName": "Doe"})
     });
 
     and('the client should receive the response headers from the downstream service', () => {
       expect(response.headers).toBeDefined()
-      expect(response.headers).toEqual({
-        'content-type': 'application/json'
-      })
+      expect(response.headers.get('whoami')).toEqual('John Doe')
     });
   });
 
@@ -124,12 +119,11 @@ defineFeature(feature, scenario => {
       expect(responseData.body).toEqual('{"firstName": "Tom", "lastName": "Jones"}')
     });
 
-    and('the request headers should be received by the downstream service', () => {
+    and('the request headers excluding the host should be received by the downstream service', () => {
       expect(responseData.headers).toBeDefined()
-      expect(responseData.headers).toEqual({
-        authorization: 'ABC-123',
-        'content-type': 'application/json'
-      })
+      expect(responseData.headers.get("authorization")).toBe('ABC-123')
+      expect(responseData.headers.get('content-type')).toBe('application/json')
+      expect(responseData.header.get("host")).not.toBe(proxyHost)
     });
 
     and('the request parameters should be received by the downstream service', () => {

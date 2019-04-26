@@ -108,12 +108,11 @@ defineFeature(feature, scenario => {
       expect(lastOptions.body).toEqual("The request body")
     });
 
-    and('the request headers should be received by the downstream service', () => {
+    and('the request headers excluding the host should be received by the downstream service', () => {
       const lastOptions = fetchMock.lastOptions()
       expect(lastOptions.headers).toBeDefined()
       expect(lastOptions.headers).toEqual({
         "x-forwarded-proto": "https",
-        host: "localhost"
       })
     });
 

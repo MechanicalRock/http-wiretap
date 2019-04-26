@@ -1,7 +1,7 @@
 import { APIGatewayProxyHandler, APIGatewayEvent } from 'aws-lambda';
 import 'source-map-support/register';
 
-const aResponse = (statusCode: number, body: string = "{}") => Promise.resolve({ statusCode, body })
+const aResponse = (statusCode: number, body: string = "{}", headers: {[header: string]: string} = {}) => Promise.resolve({ statusCode, body, headers })
 
 export const getOk: APIGatewayProxyHandler = () => aResponse(200, "All good!")
 
@@ -15,13 +15,15 @@ export const getSlowReply: APIGatewayProxyHandler = () => new Promise(done => {
   setTimeout(() => done({
     statusCode: 200,
     body: "Responded after a long time processing stuff..."
-  }), 10000)
+  }), 20000)
 })
 
 export const getFixedBody: APIGatewayProxyHandler = () => aResponse(200, JSON.stringify({
   firstName: "John",
   lastName: "Doe"
-}))
+}), {
+  whoami: 'John Doe'
+})
 
 export const postRelayBack: APIGatewayProxyHandler = (event: APIGatewayEvent) => aResponse(201, JSON.stringify({
   headers: event.headers,

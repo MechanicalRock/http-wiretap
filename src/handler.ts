@@ -3,8 +3,6 @@ import { ALBEvent, ALBResult } from 'aws-lambda';
 import { isWebUri } from 'valid-url';
 import "isomorphic-fetch"
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 export const isValid = (proxyUrl: string): boolean => {
   return isWebUri(proxyUrl) !== undefined;
 }
@@ -20,7 +18,8 @@ export const urlAndParams = (url: string, params: any) => {
   const paramStr = Object.keys(params).map(k => `${k}=${params[k]}`).join('&')
   return `${url}?${paramStr}`
 }
-declare type ALBResponseHeaders = { [header: string]: boolean | number | string }
+
+declare type ResponseHeader = { [header: string]: string }
 
 /**
  * Encodes the HTTPResponse headers into a { key: value } dict.
@@ -28,8 +27,8 @@ declare type ALBResponseHeaders = { [header: string]: boolean | number | string 
  * @see https://stackoverflow.com/a/5259004/10450721
  * @param response The HTTPResponse
  */
-export const encodeResponseHeaders = (response: Response): ALBResponseHeaders => {
-  const headers = {}
+export const encodeResponseHeaders = (response: Response): ResponseHeader => {
+  const headers: ResponseHeader = {}
   response.headers.forEach((value, header) => {
     // `header` is the lower case version - performed in the `forEach`.
     // Ideally, preserving case would be preferable, to ensure no side effects
@@ -39,9 +38,15 @@ export const encodeResponseHeaders = (response: Response): ALBResponseHeaders =>
   return headers
 }
 
+const sanitiseResponseHeaders = (headers: ResponseHeader): ResponseHeader => {
+  // Simply copying this across produces SSL errors when lambda makes request to downstream service
+  delete headers['host']
+  return headers
+}
+
 const configureTimeout = (): AbortSignal => {
   const controller = new AbortController()
-  const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS)
+  const proxyTimeoutSeconds = Number(process.env.PROXY_TIMEOUT_SECONDS) * 1000
 
   setTimeout(() => {
     controller.abort()
@@ -60,23 +65,20 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
 
   try {
     const fullPath = urlAndParams(`${proxyUrl}${path}`, queryStringParameters)
-    console.log(`Sending ${httpMethod} request to ${fullPath}...`)
 
     const response: Response = await fetch(fullPath, {
       method: httpMethod,
       signal: configureTimeout(),
-      headers,
+      headers: sanitiseResponseHeaders(headers),
       body
     })
 
-    console.log(`Received status code response: ${response.status}`)
-
-    const encodedHeaders = encodeResponseHeaders(response)
+    const encodedHeaders = sanitiseResponseHeaders(encodeResponseHeaders(response))
 
     return {
       isBase64Encoded: false,
       statusCode: response.status,
-      statusDescription: `${response.status}`,
+      statusDescription: `${response.status} Done`,
       headers: encodedHeaders,
       body: await response.text()
     };
@@ -86,7 +88,7 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
       return {
         isBase64Encoded: false,
         statusCode: 502,
-        statusDescription: '502',
+        statusDescription: '502 Timeout',
         body: ""
       };
     } else {
