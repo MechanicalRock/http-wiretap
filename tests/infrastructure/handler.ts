@@ -1,27 +1,21 @@
 import { APIGatewayProxyHandler, APIGatewayEvent } from 'aws-lambda';
 import 'source-map-support/register';
 
-const aResponse = (statusCode: number, body: string = "{}") => statusCode < 400 ? Promise.resolve({
-  statusCode,
-  body
-}) : Promise.reject({
-  statusCode,
-  body,
-})
+const aResponse = (statusCode: number, body: string = "{}") => Promise.resolve({ statusCode, body })
 
-export const getOk: APIGatewayProxyHandler = () => aResponse(200)
+export const getOk: APIGatewayProxyHandler = () => aResponse(200, "All good!")
 
-export const getCreated: APIGatewayProxyHandler = () => aResponse(201)
+export const postCreated: APIGatewayProxyHandler = () => aResponse(201, "Created resource")
 
-export const getNotFound: APIGatewayProxyHandler  = () => aResponse(404)
+export const getNotFound: APIGatewayProxyHandler  = () => aResponse(404, "Oops, not found")
 
-export const getServerError: APIGatewayProxyHandler  = () => aResponse(500)
+export const postServerError: APIGatewayProxyHandler  = () => aResponse(500, "Oops error occured in server!")
 
-export const getUnresponsive: APIGatewayProxyHandler = () => new Promise(done => {
+export const getSlowReply: APIGatewayProxyHandler = () => new Promise(done => {
   setTimeout(() => done({
     statusCode: 200,
-    body: "{}"
-  }), Number(process.env.DELAY_TIME_SECONDS) * 1000)
+    body: "Responded after a long time processing stuff..."
+  }), 10000)
 })
 
 export const postRelayBack: APIGatewayProxyHandler = (event: APIGatewayEvent) => aResponse(201, JSON.stringify({

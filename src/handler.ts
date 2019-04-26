@@ -49,8 +49,7 @@ const configureTimeout = (): AbortSignal => {
 }
 
 export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
-  const { httpMethod, headers, body, queryStringParameters } = event
-
+  const { httpMethod, headers, body, queryStringParameters, path } = event
   const proxyUrl = process.env.PROXY_URL
 
   if (!isValid(proxyUrl)) {
@@ -58,12 +57,16 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
   }
 
   try {
-    const response: Response = await fetch(urlAndParams(proxyUrl, queryStringParameters), {
+    console.log(`Sending request to ${proxyUrl}${path}...`)
+
+    const response: Response = await fetch(urlAndParams(`${proxyUrl}${path}`, queryStringParameters), {
       method: httpMethod,
       signal: configureTimeout(),
       headers,
       body
     })
+
+    console.log(`Received status code response: ${response.status}`)
 
     const encodedHeaders = encodeResponseHeaders(response)
 
@@ -76,6 +79,8 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
     };
 
   } catch (e) {
+    console.log(`Error occurred ${JSON.stringify(e)}`)
+
     if (isTimedoutError(e)) {
       return {
         isBase64Encoded: false,
@@ -87,5 +92,4 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
       throw e
     }
   }
-
 }

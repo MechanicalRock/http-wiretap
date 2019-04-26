@@ -5,8 +5,8 @@ import { sendProxy } from "../../src/handler"
 import { Response } from 'node-fetch'
 
 const feature = loadFeature("cucumber/features/proxying.feature")
-const proxyUrl = "https://localhost:8085/downstream"
-const proxiedUrlMatcher = /downstream/
+const proxyUrl = "https://localhost:8085"
+const proxiedUrlMatcher = /localhost/
 
 const runTimedCallback = async (cb: () => Promise<ALBResult>) => {
   const startTime = Date.now()
@@ -40,7 +40,7 @@ defineFeature(feature, scenario => {
         elb: { targetGroupArn: "aws:arn:fake" }
       },
       httpMethod,
-      path: "/downstream",
+      path: "downstream",
       queryStringParameters: {
         foo: "param1",
         bar: "param2"
@@ -97,7 +97,7 @@ defineFeature(feature, scenario => {
     when('the client send a request to the proxy', async () => {
       // Ideally this should be in a beforeEach as an implicit background step.
       // However `beforeEach()` are not currently scoped in jest-cucumber - they run before EVERY scenario
-      fetchMock.post(/downstream/, 200)
+      fetchMock.post(proxiedUrlMatcher, 200)
 
       await whenTheClientSendsAnyRequestToTheProxy()
     });
@@ -119,7 +119,7 @@ defineFeature(feature, scenario => {
 
     and('the request parameters should be received by the downstream service', () => {
       const url = fetchMock.lastUrl()
-      expect(url).toEqual(`${proxyUrl}?foo=param1&bar=param2`)
+      expect(url).toEqual(`${proxyUrl}/downstream?foo=param1&bar=param2`)
 
     });
 

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
+    "aws-sdk": "^2.443.0",
     "isomorphic-fetch": "^2.2.1",
     "valid-url": "^1.0.9"
   },

@@ -1,6 +1,5 @@
 AWS_PROFILE=$1
 
-
 export AWS_SDK_LOAD_CONFIG=true
 
 npm run build
