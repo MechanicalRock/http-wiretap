@@ -4,12 +4,13 @@ import "isomorphic-fetch"
 jest.setTimeout(30000)
 
 const feature = loadFeature("cucumber/features/proxying.feature")
-const proxyBaseUrl = "wiret-albSe-1VGDWATE2HD2B-1913174424.us-east-1.elb.amazonaws.com:5050"
+const proxyBaseUrl = "http://wiret-albSe-1VGDWATE2HD2B-1913174424.us-east-1.elb.amazonaws.com:5050"
 const serviceEndpoints = {
   GET: {
     "200": `${proxyBaseUrl}/downstream/ok`,
     "404": `${proxyBaseUrl}/downstream/not-found`,
     "200_SLOW_REPLY": `${proxyBaseUrl}/downstream/slow-reply`,
+    "200_FIXED_BODY": `${proxyBaseUrl}/downstream/fixed-body`
   },
 
   POST: {
@@ -30,11 +31,12 @@ const runTimedCallback = async (cb: () => Promise<Response>) => {
 }
 
 const warmDownstreamServiceLambdas = () => Promise.all([
-  fetch(serviceEndpoints.GET[200], { method: 'GET'  }),
+  fetch(serviceEndpoints.GET["200"], { method: 'GET'  }),
+  fetch(serviceEndpoints.GET["404"], { method: 'GET'  }),
   fetch(serviceEndpoints.GET["200_SLOW_REPLY"], { method: 'GET'  }),
-  fetch(serviceEndpoints.GET[404], { method: 'GET'  }),
-  fetch(serviceEndpoints.POST[201], { method: 'POST', body: "{}"  }),
-  fetch(serviceEndpoints.POST[500], { method: 'POST', body: "{}"  }),
+  fetch(serviceEndpoints.GET["200_FIXED_BODY"], { method: 'GET'  }),
+  fetch(serviceEndpoints.POST["201"], { method: 'POST', body: "{}"  }),
+  fetch(serviceEndpoints.POST["500"], { method: 'POST', body: "{}"  }),
   fetch(serviceEndpoints.POST["201_RELAY_BACK"], { method: 'POST', body: "{}"  })
 ])
 
@@ -46,6 +48,33 @@ defineFeature(feature, scenario => {
   beforeAll(async() => {
     await warmDownstreamServiceLambdas()
   })
+
+  scenario('Response bodies are returned upstream', ({ given, when, then, and }) => {
+    given('the downstream service shall respond with a response body', async () => {
+      endpoint = serviceEndpoints.GET['200_FIXED_BODY']
+    });
+
+    when('the client sends a request to the proxy', async () => {
+      response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          'content-type': 'application/json'
+        }
+      })
+    });
+
+    then('the client should receive the response body from the downstream service', () => {
+      expect(response.body).toBeDefined()
+      expect(response.body).toEqual('{"firstName": "John", "lastName": "Doe"}')
+    });
+
+    and('the client should receive the response headers from the downstream service', () => {
+      expect(response.headers).toBeDefined()
+      expect(response.headers).toEqual({
+        'content-type': 'application/json'
+      })
+    });
+  });
 
   scenario('The downstream service fails to respond', ({ given, and, when, then }) => {
     given('the downstream service shall not respond', () => {
@@ -76,6 +105,8 @@ defineFeature(feature, scenario => {
     let responseData: any
 
     when('the client send a request to the proxy', async () => {
+      // This endpoint just spits back the original request's body, header and query back to caller
+
       response = await fetch(`${serviceEndpoints.POST["201_RELAY_BACK"]}?limit=1000&ttl=40`, {
         method: "POST",
         headers: {

@@ -18,6 +18,11 @@ export const getSlowReply: APIGatewayProxyHandler = () => new Promise(done => {
   }), 10000)
 })
 
+export const getFixedBody: APIGatewayProxyHandler = () => aResponse(200, JSON.stringify({
+  firstName: "John",
+  lastName: "Doe"
+}))
+
 export const postRelayBack: APIGatewayProxyHandler = (event: APIGatewayEvent) => aResponse(201, JSON.stringify({
   headers: event.headers,
   params: event.queryStringParameters,

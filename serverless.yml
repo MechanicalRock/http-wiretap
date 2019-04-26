@@ -15,7 +15,9 @@ custom:
     timeout: ${opt:proxyTimeout}
   vpc:
     id: ${opt:vpcId}
-    subnets: ${opt:subnetIds}
+    subnets:
+      private: ${opt:privateSubnetIds}
+      public: ${opt:publicSubnetIds}
   wiretap:
     port: 5050
 
@@ -26,7 +28,7 @@ functions:
     vpc:
       securityGroupIds:
         - Ref: sendProxySecurityGroup
-      subnetIds: !Split [",", "${self:custom.vpc.subnets}"]
+      subnetIds: !Split [",", "${self:custom.vpc.subnets.private}"]
     environment:
       PROXY_URL: ${self:custom.proxy.url}
       PROXY_TIMEOUT_SECONDS: ${self:custom.proxy.timeout}
@@ -65,7 +67,8 @@ resources:
         # Scheme: internal
         Scheme: internet-facing
         IpAddressType: ipv4
-        Subnets: !Split [",", "${self:custom.vpc.subnets}"]
+        # Subnets: !Split [",", "${self:custom.vpc.subnets.private}"]
+        Subnets: !Split [",", "${self:custom.vpc.subnets.public}"]
         SecurityGroups:
           - !Ref albSecurityGroupSendProxy
 

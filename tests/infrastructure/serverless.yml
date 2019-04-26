@@ -45,6 +45,13 @@ functions:
           method: get
           path: downstream/slow-reply
 
+  getFixedBody:
+    handler: build/handler.getFixedBody
+    events:
+      - http:
+          method: get
+          path: downstream/fixed-body
+
   postRelayBack:
     handler: build/handler.postRelayBack
     events:

@@ -3,6 +3,8 @@ import { ALBEvent, ALBResult } from 'aws-lambda';
 import { isWebUri } from 'valid-url';
 import "isomorphic-fetch"
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 export const isValid = (proxyUrl: string): boolean => {
   return isWebUri(proxyUrl) !== undefined;
 }
@@ -57,10 +59,10 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
   }
 
   try {
-    const url = urlAndParams(`${proxyUrl}${path}`, queryStringParameters)
-    console.log(`Sending ${httpMethod} request to ${url}...`)
+    const fullPath = urlAndParams(`${proxyUrl}${path}`, queryStringParameters)
+    console.log(`Sending ${httpMethod} request to ${fullPath}...`)
 
-    const response: Response = await fetch(urlAndParams(url, queryStringParameters), {
+    const response: Response = await fetch(fullPath, {
       method: httpMethod,
       signal: configureTimeout(),
       headers,

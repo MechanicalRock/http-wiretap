@@ -5,8 +5,8 @@ import { sendProxy } from "../../src/handler"
 import { Response } from 'node-fetch'
 
 const feature = loadFeature("cucumber/features/proxying.feature")
-const proxyUrl = "https://localhost:8085"
-const proxiedUrlMatcher = /localhost/
+const proxyUrl = "https://localhost:8085/downstream"
+const proxiedUrlMatcher = /downstream/
 
 const runTimedCallback = async (cb: () => Promise<ALBResult>) => {
   const startTime = Date.now()
@@ -40,7 +40,7 @@ defineFeature(feature, scenario => {
         elb: { targetGroupArn: "aws:arn:fake" }
       },
       httpMethod,
-      path: "downstream",
+      path: "/service",
       queryStringParameters: {
         foo: "param1",
         bar: "param2"
@@ -119,12 +119,12 @@ defineFeature(feature, scenario => {
 
     and('the request parameters should be received by the downstream service', () => {
       const url = fetchMock.lastUrl()
-      expect(url).toEqual(`${proxyUrl}/downstream?foo=param1&bar=param2`)
+      expect(url).toEqual(`${proxyUrl}/service?foo=param1&bar=param2`)
 
     });
 
     and('the request path should be received by the downstream service', () => {
-      expect(fetchMock.lastUrl()).toContain('/downstream')
+      expect(fetchMock.lastUrl()).toContain('/service')
     });
   });
 
