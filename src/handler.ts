@@ -57,9 +57,10 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
   }
 
   try {
-    console.log(`Sending request to ${proxyUrl}${path}...`)
+    const url = urlAndParams(`${proxyUrl}${path}`, queryStringParameters)
+    console.log(`Sending ${httpMethod} request to ${url}...`)
 
-    const response: Response = await fetch(urlAndParams(`${proxyUrl}${path}`, queryStringParameters), {
+    const response: Response = await fetch(urlAndParams(url, queryStringParameters), {
       method: httpMethod,
       signal: configureTimeout(),
       headers,
@@ -79,8 +80,6 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
     };
 
   } catch (e) {
-    console.log(`Error occurred ${JSON.stringify(e)}`)
-
     if (isTimedoutError(e)) {
       return {
         isBase64Encoded: false,

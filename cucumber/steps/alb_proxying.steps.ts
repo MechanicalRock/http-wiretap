@@ -53,18 +53,8 @@ defineFeature(feature, scenario => {
     });
 
     and(/^the proxy timeout is configured to (.*) second$/, async (proxyTimeoutSecs: string) => {
-      // Lambda already configured to same time
-      console.log(proxyTimeoutSecs)
-      // await new AWS.Lambda({
-      //   region: ''
-      // }).updateFunctionConfiguration({
-      //   FunctionName: proxyFunctionName,
-      //   Environment: {
-      //     Variables: {
-      //       PROXY_TIMEOUT_SECONDS: proxyTimeoutSecs
-      //     }
-      //   }
-      // }).promise()
+      // Lambda already configured to same time or find way to configure dynamically as we need creds to invoke AWS sdk
+      proxyTimeoutSecs;
     });
 
     when('the client send a request to the proxy', async () => {
@@ -83,10 +73,11 @@ defineFeature(feature, scenario => {
   });
 
   scenario('Transparent proxying of requests downstream', ({ when, then, and }) => {
-    let proxyResponseData: any
+    let responseData: any
 
     when('the client send a request to the proxy', async () => {
       response = await fetch(`${serviceEndpoints.POST["201_RELAY_BACK"]}?limit=1000&ttl=40`, {
+        method: "POST",
         headers: {
           authorization: 'ABC-123',
           'content-type': 'application/json'
@@ -94,71 +85,58 @@ defineFeature(feature, scenario => {
         body: '{"firstName": "Tom", "lastName": "Jones"}'
       })
 
-      proxyResponseData = await response.json()
+      responseData = await response.json()
     });
 
     then('the request body should be received by the downstream service', async () => {
-      expect(proxyResponseData.body).toBeDefined()
-      expect(proxyResponseData.body).toEqual('{"firstName": "Tom", "lastName": "Jones"}')
+      expect(responseData.body).toBeDefined()
+      expect(responseData.body).toEqual('{"firstName": "Tom", "lastName": "Jones"}')
     });
 
     and('the request headers should be received by the downstream service', () => {
-      expect(proxyResponseData.headers).toBeDefined()
-      expect(proxyResponseData.headers).toEqual({
+      expect(responseData.headers).toBeDefined()
+      expect(responseData.headers).toEqual({
         authorization: 'ABC-123',
         'content-type': 'application/json'
       })
     });
 
     and('the request parameters should be received by the downstream service', () => {
-      expect(proxyResponseData.params).toBeDefined()
-      expect(proxyResponseData.params).toEqual({
+      expect(responseData.params).toBeDefined()
+      expect(responseData.params).toEqual({
         limit: '1000',
         ttl: '40'
       })
     });
 
     and('the request path should be received by the downstream service', () => {
-      expect(proxyResponseData.path).toEqual({
-        path: '/downstream/slow-reply'
+      expect(responseData.path).toEqual({
+        path: '/downstream/relay-back'
       })
     });
   });
 
-  scenario('Response bodies are returned upstream', ({ given, when, then, and }) => {
-    given('the downstream service shall respond with a response body', () => {
-      // send url to correct api gateway endpoint
-      pending()
-    });
-
-    when('the client sends a request to the proxy', async () => {
-      // use fetch to post to the endpoint
-    });
-
-    then('the client should receive the response body from the downstream service', () => {
-      // check response body
-    });
-
-    and('the client should receive the response headers from the downstream service', () => {
-      // check response header
-    });
-  });
-
   scenario('Responses are returned from downstream', ({ given, when, then }) => {
+    let cannedStatusCode: string;
+
     given(/^the downstream service shall return (\d+)$/, async (statusCode: string) => {
-      // set url to correct api gateway endpoint
-      pending()
-      console.log(statusCode)
+      cannedStatusCode = statusCode
     });
 
-    when(/^the client sends (.*) a request to the proxy$/, (method: string) => {
+    when(/^the client sends (.*) a request to the proxy$/, async (method: string) => {
       // use fetch to call endpoint with method
-      console.log(method)
+      response = await fetch(`${serviceEndpoints[method][cannedStatusCode]}`, {
+        method,
+        headers: {
+          authorization: 'ABC-123',
+          'content-type': 'application/json'
+        },
+        body: '{}'
+      })
     });
 
     then(/^the proxy return code should be (\d+)$/, (statusCode: string) => {
-      // check response
-      console.log(statusCode)
+      expect(response.status).toBe(Number(statusCode))
     });
   });
 
