@@ -105,7 +105,7 @@ defineFeature(feature, scenario => {
       response = await fetch(`${serviceEndpoints.POST["201_RELAY_BACK"]}?limit=1000&ttl=40`, {
         method: "POST",
         headers: {
-          authorization: 'ABC-123',
+          'accept-type': 'application/json',
           'content-type': 'application/json'
         },
         body: '{"firstName": "Tom", "lastName": "Jones"}'
@@ -121,9 +121,9 @@ defineFeature(feature, scenario => {
 
     and('the request headers excluding the host should be received by the downstream service', () => {
       expect(responseData.headers).toBeDefined()
-      expect(responseData.headers.get("authorization")).toBe('ABC-123')
-      expect(responseData.headers.get('content-type')).toBe('application/json')
-      expect(responseData.header.get("host")).not.toBe(proxyHost)
+      expect(responseData.headers["accept-type"]).toBe('application/json')
+      expect(responseData.headers["content-type"]).toBe('application/json')
+      expect(responseData.headers["Host"]).not.toBe(proxyHost)
     });
 
     and('the request parameters should be received by the downstream service', () => {
@@ -135,9 +135,7 @@ defineFeature(feature, scenario => {
     });
 
     and('the request path should be received by the downstream service', () => {
-      expect(responseData.path).toEqual({
-        path: '/downstream/relay-back'
-      })
+      expect(responseData.path).toEqual('/downstream/relay-back')
     });
   });
 
