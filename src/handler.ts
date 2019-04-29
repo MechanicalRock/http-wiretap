@@ -1,7 +1,7 @@
 import { ALBEvent, ALBResult } from 'aws-lambda';
 import "isomorphic-fetch"
 import { AbortController } from "abort-controller"
-import { beginSegment } from "./xray";
+import { captureHttpsTraffic } from "./xray";
 import { isValidUrl, urlAndParams, sanitiseHttpHeaders, encodeResponseHeaders } from "./http-utils";
 import { logProxyRequest } from './proxy-logger';
 
@@ -23,7 +23,7 @@ export const isTimedoutError = (err) => {
 }
 
 export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
-  const segment = beginSegment("sendProxyLambda")
+  captureHttpsTraffic()
 
   const { httpMethod, headers, body, queryStringParameters, path } = event
   const proxyUrl = process.env.PROXY_URL
@@ -56,8 +56,6 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
     };
 
   } catch (e) {
-    segment.error(e)
-
     if (isTimedoutError(e)) {
       return {
         isBase64Encoded: false,
@@ -68,7 +66,5 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
     } else {
       throw e
     }
-  } finally {
-    segment.close()
   }
 }

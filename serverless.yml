@@ -42,6 +42,8 @@ functions:
     environment:
       PROXY_URL: ${self:custom.proxy.url}
       PROXY_TIMEOUT_SECONDS: ${self:custom.proxy.timeout}
+      PROXY_BUCKET_NAME:
+        Ref: trafficLogBucket
 
 resources:
   Resources:
@@ -97,7 +99,6 @@ resources:
 
     sendProxyInvocationELBPermission:
       Type: AWS::Lambda::Permission
-      DependsOn: SendProxyLambdaFunction
       Properties:
         Action: lambda:InvokeFunction
         FunctionName: !GetAtt SendProxyLambdaFunction.Arn
@@ -131,7 +132,7 @@ resources:
                   - - !GetAtt trafficLogBucket.Arn
                     - "*"
               Principal:
-                AWS: arn:aws:iam::#{AWS::AccountId}:role/IamRoleLambdaExecution
+                AWS: !GetAtt IamRoleLambdaExecution.Arn
 
   Outputs:
     trafficLogBucketName:
