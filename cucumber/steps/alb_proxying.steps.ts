@@ -1,7 +1,6 @@
 import { defineFeature, loadFeature } from "jest-cucumber"
 import "isomorphic-fetch"
-import { PROXY_HOST } from "./config";
-import { serviceEndpoints } from "./endpoints";
+import { proxyHost, serviceEndpoints } from "./config";
 
 // When we warm lambdas behind a VPC, they usually have a ~20 sec cold start
 jest.setTimeout(30000)
@@ -111,7 +110,7 @@ defineFeature(feature, scenario => {
       expect(downstreamResponse.headers["content-type"]).toBe('application/json')
 
       // API Gateway headers seem to be in upper case
-      expect(downstreamResponse.headers["Host"]).not.toBe(PROXY_HOST)
+      expect(downstreamResponse.headers["Host"]).not.toBe(proxyHost)
     });
 
     and('the request parameters should be received by the downstream service', () => {

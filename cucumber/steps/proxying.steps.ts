@@ -5,6 +5,10 @@ jest.mock("../../src/xray", () => ({
   })
 }))
 
+jest.mock("../../src/proxy-logger", () => ({
+  logProxyRequest: () => {}
+}))
+
 import { defineFeature, loadFeature } from "jest-cucumber"
 import * as fetchMock from "fetch-mock"
 import { ALBEvent, ALBResult } from "aws-lambda";

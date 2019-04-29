@@ -5,7 +5,12 @@ jest.mock("../src/xray", () => ({
   })
 }))
 
-import { encodeResponseHeaders, sendProxy } from "../src/handler"
+jest.mock("../src/proxy-logger", () => ({
+  logProxyRequest: () => {}
+}))
+
+import { sendProxy } from "../src/handler"
+import { encodeResponseHeaders } from "../src/http-utils"
 import { ALBEvent } from "aws-lambda";
 
 describe('proxy lambda', () => {
@@ -19,38 +24,19 @@ describe('proxy lambda', () => {
 
   describe('PROXY_URL is a required environment variable', () => {
 
-    it('should fail when not set', async (done) => {
+    it('should fail when not set', async () => {
       delete process.env.PROXY_URL
-      try {
-        await whenTheClientSendsARequestToTheProxy('GET')
-        done.fail("Expected error to be thrown")
-      } catch (err) {
-        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
-        done()
-      }
+      await expect(whenTheClientSendsARequestToTheProxy('GET')).rejects.toThrowError("process.env.PROXY_URL should be set to the downstream proxied URL")
     })
 
-    it('should fail when set to an invalid URL', async (done) => {
+    it('should fail when set to an invalid URL', async () => {
       process.env.PROXY_URL = "localhost 8080"
-      try {
-        await whenTheClientSendsARequestToTheProxy('GET')
-        done.fail("Expected error to be thrown")
-      } catch (err) {
-        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
-        done()
-      }
-
+      await expect(whenTheClientSendsARequestToTheProxy('GET')).rejects.toThrowError("process.env.PROXY_URL should be set to the downstream proxied URL")
     })
 
-    it('should fail when set to an empty string URL', async (done) => {
+    it('should fail when set to an empty string URL', async () => {
       process.env.PROXY_URL = ""
-      try {
-        await whenTheClientSendsARequestToTheProxy('GET')
-        done.fail("Expected error to be thrown")
-      } catch (err) {
-        expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
-        done()
-      }
+      await expect(whenTheClientSendsARequestToTheProxy('GET')).rejects.toThrowError("process.env.PROXY_URL should be set to the downstream proxied URL")
     })
   })
 })
