@@ -50,7 +50,7 @@ export const encodeResponseHeaders = (response: Response): HttHeaders => {
   return headers
 }
 
-const sanitiseHttHeaders = (headers: HttHeaders): HttHeaders => {
+const sanitiseHttpHeaders = (headers: HttHeaders): HttHeaders => {
   // Copying the Host header across produces SSL errors when lambda makes request to downstream service
   delete headers['host']
   return headers
@@ -73,11 +73,11 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
       method: httpMethod,
       timeout: Number(process.env.PROXY_TIMEOUT_SECONDS) * 1000,
       signal: configureTimeout(),
-      headers: sanitiseHttHeaders(headers),
+      headers: sanitiseHttpHeaders(headers),
       body
     } as RequestInit)
 
-    const encodedHeaders = sanitiseHttHeaders(encodeResponseHeaders(response))
+    const encodedHeaders = sanitiseHttpHeaders(encodeResponseHeaders(response))
 
     return {
       isBase64Encoded: false,
