@@ -13,6 +13,7 @@ const configureTimeout = (): AbortSignal => {
   return controller.signal
 }
 
+
 export const isValid = (proxyUrl: string): boolean => {
   return isWebUri(proxyUrl) !== undefined;
 }
@@ -29,7 +30,7 @@ export const urlAndParams = (url: string, params: any) => {
   return `${url}?${paramStr}`
 }
 
-declare type ResponseHeader = { [header: string]: string }
+declare type HttHeaders = { [header: string]: string }
 
 /**
  * Encodes the HTTPResponse headers into a { key: value } dict.
@@ -37,8 +38,8 @@ declare type ResponseHeader = { [header: string]: string }
  * @see https://stackoverflow.com/a/5259004/10450721
  * @param response The HTTPResponse
  */
-export const encodeResponseHeaders = (response: Response): ResponseHeader => {
-  const headers: ResponseHeader = {}
+export const encodeResponseHeaders = (response: Response): HttHeaders => {
+  const headers: HttHeaders = {}
   response.headers.forEach((value, header) => {
     // `header` is the lower case version - performed in the `forEach`.
     // Ideally, preserving case would be preferable, to ensure no side effects
@@ -48,7 +49,7 @@ export const encodeResponseHeaders = (response: Response): ResponseHeader => {
   return headers
 }
 
-const sanitiseResponseHeaders = (headers: ResponseHeader): ResponseHeader => {
+const sanitiseHttHeaders = (headers: HttHeaders): HttHeaders => {
   // Copying the Host header across produces SSL errors when lambda makes request to downstream service
   delete headers['host']
   return headers
@@ -69,11 +70,11 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
       method: httpMethod,
       timeout: Number(process.env.PROXY_TIMEOUT_SECONDS) * 1000,
       signal: configureTimeout(),
-      headers: sanitiseResponseHeaders(headers),
+      headers: sanitiseHttHeaders(headers),
       body
     } as RequestInit)
 
-    const encodedHeaders = sanitiseResponseHeaders(encodeResponseHeaders(response))
+    const encodedHeaders = sanitiseHttHeaders(encodeResponseHeaders(response))
 
     return {
       isBase64Encoded: false,

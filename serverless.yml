@@ -8,6 +8,8 @@ plugins:
 provider:
   name: aws
   runtime: nodejs8.10
+  tracing:
+    lambda: true
 
 custom:
   proxy:

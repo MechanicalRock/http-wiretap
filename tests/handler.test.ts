@@ -1,6 +1,5 @@
 import { encodeResponseHeaders, sendProxy } from "../src/handler"
-import { ALBEvent } from "aws-lambda";
-import { Response } from 'node-fetch'
+import { ALBEvent } from "aws-lambda"
 
 describe('proxy lambda', () => {
   describe('#encodeResponseHeaders', () => {
