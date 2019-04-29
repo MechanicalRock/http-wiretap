@@ -10,6 +10,14 @@ provider:
   runtime: nodejs8.10
   tracing:
     lambda: true
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action: s3:PutObject
+      Resource:
+        Fn::Join:
+          - "/"
+          - - !GetAtt trafficLogBucket.Arn
+            - "*"
 
 custom:
   proxy:
@@ -103,7 +111,34 @@ resources:
         Targets:
           - Id: !GetAtt SendProxyLambdaFunction.Arn
 
+    trafficLogBucket:
+      Type: AWS::S3::Bucket
+
+    trafficLogBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      DependsOn: trafficLogBucket
+      Properties:
+        Bucket:
+          Ref: trafficLogBucket
+        PolicyDocument:
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - s3:PutObject
+              Resource:
+                Fn::Join:
+                  - "/"
+                  - - !GetAtt trafficLogBucket.Arn
+                    - "*"
+              Principal:
+                AWS: arn:aws:iam::#{AWS::AccountId}:role/IamRoleLambdaExecution
+
   Outputs:
+    trafficLogBucketName:
+      Value: !Ref trafficLogBucket
+      Export:
+        Name: "trafficLogBucketName"
+
     serviceElbDnsName:
       Value: !GetAtt albService.DNSName
       Export:
