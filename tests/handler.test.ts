@@ -1,5 +1,12 @@
+jest.mock("../src/xray", () => ({
+  beginSegment: () => ({
+    close: () => {},
+    error: () => {}
+  })
+}))
+
 import { encodeResponseHeaders, sendProxy } from "../src/handler"
-import { ALBEvent } from "aws-lambda"
+import { ALBEvent } from "aws-lambda";
 
 describe('proxy lambda', () => {
   describe('#encodeResponseHeaders', () => {
@@ -21,7 +28,6 @@ describe('proxy lambda', () => {
         expect(err.toString()).toContain("process.env.PROXY_URL should be set to the downstream proxied URL")
         done()
       }
-
     })
 
     it('should fail when set to an invalid URL', async (done) => {

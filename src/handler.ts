@@ -2,6 +2,7 @@ import { AbortController } from "abort-controller"
 import { ALBEvent, ALBResult } from 'aws-lambda';
 import { isWebUri } from 'valid-url';
 import "isomorphic-fetch"
+import { beginSegment } from "./xray";
 
 const configureTimeout = (): AbortSignal => {
   // Ideally we have timeout OR signal, but for backward compability with fetch-mock we need to use signal
@@ -56,6 +57,8 @@ const sanitiseHttHeaders = (headers: HttHeaders): HttHeaders => {
 }
 
 export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
+  const segment = beginSegment("sendProxyLambda")
+
   const { httpMethod, headers, body, queryStringParameters, path } = event
   const proxyUrl = process.env.PROXY_URL
 
@@ -85,6 +88,8 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
     };
 
   } catch (e) {
+    segment.error(e)
+
     if (isTimedoutError(e)) {
       return {
         isBase64Encoded: false,
@@ -95,5 +100,7 @@ export const sendProxy = async (event: ALBEvent): Promise<ALBResult> => {
     } else {
       throw e
     }
+  } finally {
+    segment.close()
   }
 }
