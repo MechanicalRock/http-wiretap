@@ -10,16 +10,10 @@ provider:
   runtime: nodejs8.10
   tracing:
     lambda: true
-  iamRoleStatements:
-    - Effect: "Allow"
-      Action: s3:PutObject
-      Resource:
-        Fn::Join:
-          - "/"
-          - - !GetAtt trafficLogBucket.Arn
-            - "*"
 
 custom:
+  httpservice:
+    url: ${opt:httpServiceUrl}
   proxy:
     url: ${opt:proxyUrl}
     timeout: ${opt:proxyTimeout}
@@ -43,10 +37,29 @@ functions:
       PROXY_URL: ${self:custom.proxy.url}
       PROXY_TIMEOUT_SECONDS: ${self:custom.proxy.timeout}
       PROXY_BUCKET_NAME:
-        Ref: trafficLogBucket
+        Ref: S3BucketTrafficteelogs
+
+  proxyToHttpService:
+    handler: build/handler.proxyToHttpService
+    vpc:
+      securityGroupIds:
+        - Ref: proxyToHttpServiceSecurityGroup
+      subnetIds: !Split [",", "${self:custom.vpc.subnets.private}"]
+    environment:
+      HTTP_SERVICE_URL: ${self:custom.httpservice.url}
+    events:
+      - s3:
+          bucket: traffic-tee-logs
+          event: s3:ObjectCreated:*
 
 resources:
   Resources:
+    proxyToHttpServiceSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        VpcId: ${self:custom.vpc.id}
+        GroupDescription: "Lambda Security Group for proxyToHttpService function"
+
     sendProxySecurityGroup:
       Type: AWS::EC2::SecurityGroup
       Properties:
@@ -112,35 +125,26 @@ resources:
         Targets:
           - Id: !GetAtt SendProxyLambdaFunction.Arn
 
-    # can eventually be implicitly created from lambda that tails off events
-    trafficLogBucket:
-      Type: AWS::S3::Bucket
-
-    trafficLogBucketPolicy:
+    trafficTeeLogS3BucketPolicy:
       Type: AWS::S3::BucketPolicy
-      DependsOn: trafficLogBucket
       Properties:
         Bucket:
-          Ref: trafficLogBucket
+          Ref: S3BucketTrafficteelogs
         PolicyDocument:
           Statement:
             - Effect: "Allow"
               Action:
                 - s3:PutObject
+                - s3:GetObject
               Resource:
                 Fn::Join:
                   - "/"
-                  - - !GetAtt trafficLogBucket.Arn
+                  - - !GetAtt S3BucketTrafficteelogs.Arn
                     - "*"
               Principal:
                 AWS: !GetAtt IamRoleLambdaExecution.Arn
 
   Outputs:
-    trafficLogBucketName:
-      Value: !Ref trafficLogBucket
-      Export:
-        Name: "trafficLogBucketName"
-
     serviceElbDnsName:
       Value: !GetAtt albService.DNSName
       Export:

@@ -49,6 +49,7 @@ defineFeature(feature, scenario => {
 
   afterEach(() => {
     fetchMock.reset()
+    jest.resetAllMocks()
   })
 
   scenario('Client host header should not be forwarded to http service', ({ given, when, then, but }) => {
@@ -118,10 +119,10 @@ defineFeature(feature, scenario => {
     	})
 
     	and('the request should have the same body params', () => {
-        const body = fetchMock.lastCall()[1].body
+        const requestPayload = fetchMock.lastCall()[1] as ProxyRequestPayload
 
-        expect(body).toBeDefined()
-        expect(body).toBe('{"firstName": "John", "lastName": "Doe"}')
+        expect(requestPayload).toBeDefined()
+        expect(requestPayload.body).toBe('{"firstName": "John", "lastName": "Doe"}')
     	})
     })
   })

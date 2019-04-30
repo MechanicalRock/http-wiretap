@@ -7,9 +7,11 @@ export const sendHttpServiceRequest = async (event: S3CreateEvent) => {
   const s3Client = new AWS.S3()
 
   const requests = event.Records.map(async ({ s3 }) => {
+    console.log(`Processing record: ${JSON.stringify(s3)}`)
+
     const s3GetObjectOutput = await s3Client.getObject({
       Bucket: s3.bucket.name,
-      Key: s3.object.key
+      Key: decodeURIComponent(s3.object.key.replace(/\+/g, " "))
     }).promise()
 
     if(s3GetObjectOutput.$response.error) {

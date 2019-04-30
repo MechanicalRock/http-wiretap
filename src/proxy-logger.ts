@@ -1,7 +1,7 @@
 import { AWS } from "../src/xray"
 import { ALBEvent } from "aws-lambda";
 
-const appendLeadingZeros = (n: number) =>  n < 9 ? "0" + n : n
+const appendLeadingZeros = (n: number) =>  n <= 9 ? "0" + n : n
 
 export const logProxyRequest = async (event: ALBEvent) => {
   if(!process.env.PROXY_BUCKET_NAME) {
