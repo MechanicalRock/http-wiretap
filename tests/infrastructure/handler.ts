@@ -39,7 +39,7 @@ export const captureRequest: APIGatewayProxyHandler = async (event: APIGatewayEv
   const db = new AWS.DynamoDB.DocumentClient()
 
   await db.put({
-    TableName: 'ServiceTable',
+    TableName: process.env.TABLE_NAME,
     Item: {
       id: v4(),
       created: moment().format("MM/DD/YYYY HH:mm:ss"),
@@ -53,7 +53,7 @@ export const captureRequest: APIGatewayProxyHandler = async (event: APIGatewayEv
 export const getCapturedRequests: APIGatewayProxyHandler = async (event: APIGatewayEvent) => {
   const db = new AWS.DynamoDB.DocumentClient()
   const response = await db.scan({
-    TableName: 'ServiceTable'
+    TableName: process.env.TABLE_NAME,
   }).promise()
 
   return aResponse(200, JSON.stringify(response.Items))

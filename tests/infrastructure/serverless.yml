@@ -73,6 +73,8 @@ functions:
 
   requestCapture:
     handler: build/handler.captureRequest
+    environment:
+      TABLE_NAME: "ServiceTable"
     events:
       - http:
           method: post
@@ -80,6 +82,8 @@ functions:
 
   getCapturedRequests:
     handler: build/handler.getCapturedRequests
+    environment:
+      TABLE_NAME: "ServiceTable"
     events:
       - http:
           method: get
@@ -90,7 +94,7 @@ resources:
     serviceTable:
         Type: AWS::DynamoDB::Table
         Properties:
-          TableName: ServiceTable
+          TableName: "ServiceTable"
           AttributeDefinitions:
             - AttributeName: id
               AttributeType: S
