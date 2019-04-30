@@ -1,11 +1,7 @@
-jest.mock("../../src/proxy-logger", () => ({
-  logProxyRequest: () => {}
-}))
-
 import { defineFeature, loadFeature } from "jest-cucumber"
 import * as fetchMock from "fetch-mock"
 import { ALBEvent, ALBResult } from "aws-lambda";
-import { sendProxy } from "../../src/handler"
+import { forwardProxy } from "../../src/proxy-forwarder"
 import { Response } from 'node-fetch'
 
 const feature = loadFeature("cucumber/features/proxying.feature")
@@ -57,7 +53,7 @@ defineFeature(feature, scenario => {
       body: "The request body"
     }
 
-    const executionResult = await runTimedCallback(() => sendProxy(event));
+    const executionResult = await runTimedCallback(() => forwardProxy(event));
 
     downstreamRequestElapsedTimeMillis = executionResult.elapsedTime
     response = executionResult.response

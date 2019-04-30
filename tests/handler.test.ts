@@ -1,8 +1,4 @@
-jest.mock("../src/proxy-logger", () => ({
-  logProxyRequest: () => {}
-}))
-
-import { sendProxy } from "../src/handler"
+import { forwardProxy } from "../src/proxy-forwarder"
 import { encodeResponseHeaders } from "../src/http-utils"
 import { ALBEvent } from "aws-lambda";
 
@@ -53,6 +49,6 @@ async function whenTheClientSendsARequestToTheProxy(httpMethod: string) {
     body: "The request body"
   }
 
-  const response = await sendProxy(event);
+  const response = await forwardProxy(event);
   return response
 }
