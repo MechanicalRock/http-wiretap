@@ -112,6 +112,7 @@ resources:
         Targets:
           - Id: !GetAtt SendProxyLambdaFunction.Arn
 
+    # can eventually be implicitly created from lambda that tails off events
     trafficLogBucket:
       Type: AWS::S3::Bucket
 

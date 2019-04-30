@@ -8,9 +8,4 @@ export const captureHttpsTraffic = () => {
   AWSXray.captureHTTPsGlobal(https)
 }
 
-export const beginSegment = (name: string) => {
-  const segment = new AWSXray.Segment(name)
-  return segment
-}
-
 export const AWS = AWSXray.captureAWS(AWSSdk) as typeof AWSSdk

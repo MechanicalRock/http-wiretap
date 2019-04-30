@@ -8,13 +8,13 @@ export const logProxyRequest = async (event: ALBEvent) => {
     throw new Error("process.env.PROXY_BUCKET_NAME should be set to where you are writing out request logs")
   }
 
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = appendLeadingZeros(d.getMonth() + 1)
-  const day = appendLeadingZeros(d.getDate())
-  const hours = appendLeadingZeros(d.getHours())
-  const minutes = appendLeadingZeros(d.getMinutes())
-  const seconds = appendLeadingZeros(d.getSeconds())
+  const date = new Date()
+  const year = date.getFullYear()
+  const month = appendLeadingZeros(date.getMonth() + 1)
+  const day = appendLeadingZeros(date.getDate())
+  const hours = appendLeadingZeros(date.getHours())
+  const minutes = appendLeadingZeros(date.getMinutes())
+  const seconds = appendLeadingZeros(date.getSeconds())
 
   const { $response } = await new AWS.S3().putObject({
     Bucket: process.env.PROXY_BUCKET_NAME as string,
