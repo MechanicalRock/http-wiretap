@@ -1,10 +1,3 @@
-jest.mock("../../src/xray", () => ({
-  beginSegment: () => ({
-    close: () => {},
-    error: () => {}
-  })
-}))
-
 jest.mock("../../src/proxy-logger", () => ({
   logProxyRequest: () => {}
 }))
