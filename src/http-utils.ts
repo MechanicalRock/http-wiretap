@@ -1,7 +1,6 @@
 import { isWebUri } from "valid-url";
 import "isomorphic-fetch"
-
-declare type HttpHeaders = { [header: string]: string }
+import { Dictionary } from "./types";
 
 export const isValidUrl = (proxyUrl: string): boolean => {
   return isWebUri(proxyUrl) !== undefined;
@@ -18,8 +17,8 @@ export const urlAndParams = (url: string, params: any) => {
  * @see https://stackoverflow.com/a/5259004/10450721
  * @param response The HTTPResponse
  */
-export const encodeResponseHeaders = (response: Response): HttpHeaders => {
-  const headers: HttpHeaders = {}
+export const encodeResponseHeaders = (response: Response): Dictionary => {
+  const headers: Dictionary = {}
   response.headers.forEach((value, header) => {
     // `header` is the lower case version - performed in the `forEach`.
     // Ideally, preserving case would be preferable, to ensure no side effects
@@ -29,7 +28,7 @@ export const encodeResponseHeaders = (response: Response): HttpHeaders => {
   return headers
 }
 
-export const sanitiseHttpHeaders = (headers: HttpHeaders): HttpHeaders => {
+export const sanitiseHttpHeaders = (headers: Dictionary): Dictionary => {
   // Copying the Host header across produces SSL errors when lambda makes request to downstream service
   delete headers['host']
   return headers

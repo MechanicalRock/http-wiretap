@@ -2,38 +2,46 @@ const s3GetObjectSpy = jest.fn()
 
 jest.mock("../../src/xray", () => ({
   AWS: {
-    S3: function() { return { getObject: s3GetObjectSpy }}
+    S3: function() { return {
+      getObject: s3GetObjectSpy
+    }}
   }
 }))
 
 import { defineFeature, loadFeature } from "jest-cucumber"
 import * as fetchMock from "fetch-mock"
 import { S3CreateEvent } from "aws-lambda";
+import { ProxyRequestPayload } from "../../src/types"
+import { sendHttpServiceRequest } from "../../src/proxy-http-service"
 
 const feature = loadFeature("cucumber/features/proxying_http_service.feature")
 process.env.HTTP_SERVICE_URL = "http://external-service/v1"
 
-const forwardRequestToHttpService = (event: S3CreateEvent) => {
-  // TODO
-  event;
-}
-
-const whenTheContentsOfARequestAreUploadedToS3 = async (requestEventBody: any) => {
+const whenTheContentsOfARequestAreUploadedToS3 = async (requestEventBody: ProxyRequestPayload) => {
   s3GetObjectSpy.mockReturnValue({
     promise: () => ({
-      $response: {
-        data: JSON.stringify(requestEventBody)
-      }
+      Body: JSON.stringify(requestEventBody),
+      $response: {}
     })
   })
 
-  await forwardRequestToHttpService({
-    Records: []
+  await sendHttpServiceRequest({
+    Records: [{
+      s3: {
+        bucket: {
+            name: "test-bucket"
+        },
+        object: {
+            key: "/files",
+        }
+      }
+
+    }]
   } as S3CreateEvent)
 }
 
 defineFeature(feature, scenario => {
-  let requestEventBody: any
+  let requestEventBody: ProxyRequestPayload
 
   beforeEach(() => {
     fetchMock.mock( /v1/, "{}")
@@ -94,16 +102,15 @@ defineFeature(feature, scenario => {
 
     	then('the proxy should forward the request should be to the same path', () => {
         expect(fetchMock.lastUrl()).toBeDefined()
-        expect(fetchMock.lastUrl()).toBe("http://external-service/v1/checkpoint")
+        expect(fetchMock.lastUrl()).toBe("http://external-service/v1/checkpoint?group=mechanicalrock")
     	})
 
     	and('the request should have the same query params', () => {
-        expect(fetchMock.lastOptions().query).toEqual({
-          group: "mechanicalrock"
-        })
+        expect(fetchMock.lastUrl()).toContain("?group=mechanicalrock")
     	})
 
     	and('the request should have the same headers params', () => {
+        expect(fetchMock.lastOptions().headers).toBeDefined()
         expect(fetchMock.lastOptions().headers).toEqual({
           'content-type': 'application/json',
           'etag': '1234ABC'
@@ -111,7 +118,10 @@ defineFeature(feature, scenario => {
     	})
 
     	and('the request should have the same body params', () => {
-        expect(fetchMock.lastCall()[0][0]).toBe('{"firstName": "John", "lastName": "Doe"}')
+        const body = fetchMock.lastCall()[1].body
+
+        expect(body).toBeDefined()
+        expect(body).toBe('{"firstName": "John", "lastName": "Doe"}')
     	})
     })
   })
