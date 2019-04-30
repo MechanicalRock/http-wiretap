@@ -1,10 +1,7 @@
 import { ALBEvent, ALBResult } from 'aws-lambda';
 import "isomorphic-fetch"
 import { AbortController } from "abort-controller"
-import { captureHttpsTraffic } from "./xray";
 import { isValidUrl, urlAndParams, sanitiseHttpHeaders, encodeResponseHeaders } from "./http-utils";
-
-captureHttpsTraffic()
 
 export const configureTimeout = (): AbortSignal => {
   // Ideally we have timeout OR signal, but for backward compability with fetch-mock we need to use signal

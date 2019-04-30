@@ -18,11 +18,12 @@ export const logProxyRequest = async (event: ALBEvent) => {
 
   const { $response } = await new AWS.S3().putObject({
     Bucket: process.env.PROXY_BUCKET_NAME as string,
-    Key: `${year}/${month}/${day}/log_${hours}:${minutes}:${seconds}`,
+    Key: `${year}/${month}/${day}/request_${hours}:${minutes}:${seconds}`,
     Body: JSON.stringify({
       headers: event.headers,
       path: event.path,
       body: event.body,
+      method: event.httpMethod,
       params: event.queryStringParameters
     })
   }).promise()
