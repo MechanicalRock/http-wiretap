@@ -6,6 +6,7 @@ I want to publish the request data in S3
 
 Rules:
   - All proxied requests are published to S3
+  - Distributed tracing is configured (XRay)
   - Request data is published to a file in JSON format
   - Request data published to S3 contains the method, params, body, path and headers
   - Path of the file should be in format "yyyy/mm/dd/request_hh:mm:ss" (i.e. "2019/10/05/request_12:50:45")
