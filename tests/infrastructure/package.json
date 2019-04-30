@@ -8,11 +8,16 @@
     "deploy": "sls deploy"
   },
   "dependencies": {
-    "source-map-support": "^0.5.10"
+    "aws-sdk": "^2.445.0",
+    "moment": "^2.24.0",
+    "source-map-support": "^0.5.10",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.17",
+    "@types/moment": "^2.13.0",
     "@types/node": "^10.12.18",
+    "@types/uuid": "^3.4.4",
     "serverless": "^1.41.1",
     "serverless-webpack": "^5.2.0",
     "ts-loader": "^5.3.3",

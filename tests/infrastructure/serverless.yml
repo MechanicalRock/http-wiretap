@@ -7,6 +7,18 @@ plugins:
 provider:
   name: aws
   runtime: nodejs8.10
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "Fn::GetAtt": [ serviceTable, Arn ]
 
 functions:
   getOk:
@@ -59,7 +71,36 @@ functions:
           method: post
           path: downstream/relay-back
 
+  requestCapture:
+    handler: build/handler.captureRequest
+    events:
+      - http:
+          method: post
+          path: downstream/request-capture
+
+  getCapturedRequests:
+    handler: build/handler.getCapturedRequests
+    events:
+      - http:
+          method: get
+          path: downstream/request-capture
+
 resources:
+  Resources:
+    serviceTable:
+        Type: AWS::DynamoDB::Table
+        Properties:
+          TableName: ServiceTable
+          AttributeDefinitions:
+            - AttributeName: id
+              AttributeType: S
+          KeySchema:
+            - AttributeName: id
+              KeyType: HASH
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+
   Outputs:
     serviceUrl:
       Value:

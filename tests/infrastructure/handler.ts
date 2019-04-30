@@ -1,5 +1,8 @@
 import { APIGatewayProxyHandler, APIGatewayEvent } from 'aws-lambda';
 import 'source-map-support/register';
+import * as AWS from "aws-sdk"
+import { v4}  from "uuid"
+import * as moment from 'moment';
 
 const aResponse = (statusCode: number, body: string = "{}", headers: {[header: string]: string} = {}) => Promise.resolve({ statusCode, body, headers })
 
@@ -31,3 +34,28 @@ export const postRelayBack: APIGatewayProxyHandler = (event: APIGatewayEvent) =>
   path: event.path,
   body: event.body
 }))
+
+export const captureRequest: APIGatewayProxyHandler = async (event: APIGatewayEvent) => {
+  const db = new AWS.DynamoDB.DocumentClient()
+
+  await db.put({
+    TableName: 'ServiceTable',
+    Item: {
+      id: v4(),
+      created: moment().format("MM/DD/YYYY HH:mm:ss"),
+      message: event.body
+    }
+  }).promise()
+
+  return aResponse(201)
+}
+
+export const getCapturedRequests: APIGatewayProxyHandler = async (event: APIGatewayEvent) => {
+  const db = new AWS.DynamoDB.DocumentClient()
+  const response = await db.scan({
+    TableName: 'ServiceTable'
+  }).promise()
+
+  return aResponse(200, JSON.stringify(response.Items))
+}
+
