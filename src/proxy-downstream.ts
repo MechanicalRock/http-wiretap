@@ -20,7 +20,7 @@ export const isTimedoutError = (err) => {
   return err.name == 'AbortError' || isMocked
 }
 
-export const forwardProxy = async (event: ALBEvent): Promise<ALBResult> => {
+export const forwardProxyToDownstreamService = async (event: ALBEvent): Promise<ALBResult> => {
   const { httpMethod, headers, body, queryStringParameters, path } = event
   const proxyUrl = process.env.PROXY_URL
 

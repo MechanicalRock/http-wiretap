@@ -3,7 +3,7 @@ import { AWS } from "../src/xray"
 import { ProxyRequestPayload } from "./types";
 import { sanitiseHttpHeaders, urlAndParams } from "./http-utils";
 
-export const sendHttpServiceRequest = async (event: S3CreateEvent) => {
+export const forwardProxyToHttpService = async (event: S3CreateEvent) => {
   const s3Client = new AWS.S3()
 
   const requests = event.Records.map(async ({ s3 }) => {

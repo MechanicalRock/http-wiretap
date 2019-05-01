@@ -1,7 +1,7 @@
 import { defineFeature, loadFeature } from "jest-cucumber"
 import * as fetchMock from "fetch-mock"
 import { ALBEvent, ALBResult } from "aws-lambda";
-import { forwardProxy } from "../../src/proxy-forwarder"
+import { forwardProxyToDownstreamService } from "../../src/proxy-downstream"
 import { Response } from 'node-fetch'
 
 const feature = loadFeature("cucumber/features/proxying.feature")
@@ -53,7 +53,7 @@ defineFeature(feature, scenario => {
       body: "The request body"
     }
 
-    const executionResult = await runTimedCallback(() => forwardProxy(event));
+    const executionResult = await runTimedCallback(() => forwardProxyToDownstreamService(event));
 
     downstreamRequestElapsedTimeMillis = executionResult.elapsedTime
     response = executionResult.response

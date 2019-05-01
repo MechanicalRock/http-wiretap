@@ -15,12 +15,12 @@ const successResponse = {
   promise: () => ({ $response: {} })
 }
 
-const publishLogs = () => logProxyRequest({
+const publishLogs = (method: string) => logProxyRequest({
   isBase64Encoded: false,
   requestContext: {
     elb: { targetGroupArn: "arn:aws:elb:fake" },
   },
-  httpMethod: "POST",
+  httpMethod: method,
   path: "/checkout",
   queryStringParameters: {
     amount: "200",
@@ -57,9 +57,12 @@ defineFeature(feature, scenario => {
   })
 
 
-  scenario('Client requests are published to S3', ({ given, then, and }) => {
-    given('the client has sent a request to the proxy', async () => {
-      await publishLogs()
+  scenario('All client requests are published to S3', ({ given, then, and }) => {
+    let requestMethod: string
+
+    given(/^the client has sent a (.*) request to the proxy$/, async (method: string) => {
+      requestMethod = method
+      await publishLogs(requestMethod)
     })
 
     then('a log file should be published to S3 under the date separated path', () => {
@@ -95,7 +98,7 @@ defineFeature(feature, scenario => {
     })
 
     and('it should contain the request method', () => {
-      expect(s3PutObjectBody.method).toBe('POST')
+      expect(s3PutObjectBody.method).toBe(requestMethod)
     })
   })
 })

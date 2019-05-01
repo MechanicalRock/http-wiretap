@@ -8,7 +8,7 @@ jest.mock("../src/xray", () => ({
   }
 }))
 
-import { sendHttpServiceRequest } from "../src/proxy-http-service";
+import { forwardProxyToHttpService } from "../src/proxy-http-service";
 import { S3Event } from "aws-lambda";
 
 const mockS3Event = {
@@ -38,7 +38,7 @@ describe("ProxyHttpService", () => {
       })
     })
 
-    await expect(sendHttpServiceRequest(mockS3Event)).rejects.toThrowError("Failed to get object with key: 'mock_file_10:07:23'. Cause: 'Access Denied!'")
+    await expect(forwardProxyToHttpService(mockS3Event)).rejects.toThrowError("Failed to get object with key: 'mock_file_10:07:23'. Cause: 'Access Denied!'")
   })
 
   it("should decode object keys with unicode characters", async () => {
@@ -46,7 +46,7 @@ describe("ProxyHttpService", () => {
       promise: () => ({ Body: "{}", $response: {}})
     })
 
-    await sendHttpServiceRequest(mockS3Event)
+    await forwardProxyToHttpService(mockS3Event)
 
     expect(s3GetObjectSpy).toBeCalledWith({
       Bucket: 'test-bucket',

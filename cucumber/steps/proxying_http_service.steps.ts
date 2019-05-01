@@ -12,7 +12,7 @@ import { defineFeature, loadFeature } from "jest-cucumber"
 import * as fetchMock from "fetch-mock"
 import { S3CreateEvent } from "aws-lambda";
 import { ProxyRequestPayload } from "../../src/types"
-import { sendHttpServiceRequest } from "../../src/proxy-http-service"
+import { forwardProxyToHttpService } from "../../src/proxy-http-service"
 
 const feature = loadFeature("cucumber/features/proxying_http_service.feature")
 process.env.HTTP_SERVICE_URL = "http://external-service/v1"
@@ -25,7 +25,7 @@ const whenTheContentsOfARequestAreUploadedToS3 = async (requestEventBody: ProxyR
     })
   })
 
-  await sendHttpServiceRequest({
+  await forwardProxyToHttpService({
     Records: [{
       s3: {
         bucket: {

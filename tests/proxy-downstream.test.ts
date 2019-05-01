@@ -1,4 +1,4 @@
-import { forwardProxy } from "../src/proxy-forwarder"
+import { forwardProxyToDownstreamService } from "../src/proxy-downstream"
 import { encodeResponseHeaders } from "../src/http-utils"
 import { ALBEvent } from "aws-lambda";
 
@@ -49,6 +49,6 @@ async function whenTheClientSendsARequestToTheProxy(httpMethod: string) {
     body: "The request body"
   }
 
-  const response = await forwardProxy(event);
+  const response = await forwardProxyToDownstreamService(event);
   return response
 }
