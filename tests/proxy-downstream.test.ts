@@ -5,9 +5,7 @@ import { ALBEvent } from "aws-lambda";
 describe('proxy lambda', () => {
   describe('#encodeResponseHeaders', () => {
     it('should return {} if headers is not defined', () => {
-      const response = new Response('something')
-      // typing mismatch?
-      expect(encodeResponseHeaders(response as any)).toEqual({})
+      expect(encodeResponseHeaders(new Response())).toEqual({})
     })
   })
 
