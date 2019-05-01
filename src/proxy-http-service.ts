@@ -7,15 +7,15 @@ export const sendHttpServiceRequest = async (event: S3CreateEvent) => {
   const s3Client = new AWS.S3()
 
   const requests = event.Records.map(async ({ s3 }) => {
-    console.log(`Processing record: ${JSON.stringify(s3)}`)
+    const decodedKey = decodeURIComponent(s3.object.key.replace(/\+/g, " "))
 
     const s3GetObjectOutput = await s3Client.getObject({
       Bucket: s3.bucket.name,
-      Key: decodeURIComponent(s3.object.key.replace(/\+/g, " "))
+      Key: decodedKey
     }).promise()
 
     if(s3GetObjectOutput.$response.error) {
-      throw new Error(`Could not find request log with file key: ${s3.object.key}`)
+      throw new Error(`Failed to get object with key: '${decodedKey}'. Cause: '${s3GetObjectOutput.$response.error.message}'`)
     }
     const { method, path, body, headers, params } = JSON.parse(s3GetObjectOutput.Body as string) as ProxyRequestPayload
 

@@ -82,7 +82,7 @@ defineFeature(feature, scenario => {
     })
 
     scenario('Client request params, headers, body are forwarded on same path to the http service', ({ given, when, then, and }) => {
-    	given('contents of a POST request', () => {
+    	given('contents of a POST request with specific headers, query, body and path', () => {
         requestEventBody = {
           path: "/checkpoint",
           body: '{"firstName": "John", "lastName": "Doe"}',

@@ -19,7 +19,7 @@ Scenario: Client host header should not be forwarded to http service
   But the host header should not be the same
 
 Scenario: Client request params, headers, body are forwarded on same path to the http service
-  Given contents of a POST request
+  Given contents of a POST request with specific headers, query, body and path
   When the contents are uploaded to a file on S3
   Then the proxy should forward the request should be to the same path
   And the request should have the same query params
