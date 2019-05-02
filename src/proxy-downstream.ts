@@ -17,7 +17,12 @@ export const isTimedoutError = (err) => {
 
   // Blocked in testing by https://github.com/wheresrhys/fetch-mock/pull/418
   const isMocked = err.toString().includes("aborted")
-  return err.name == 'AbortError' || isMocked
+
+  if(isMocked) {
+    return true
+  } else {
+    return err.type === 'request-timeout'
+  }
 }
 
 export const forwardProxyToDownstreamService = async (event: ALBEvent): Promise<ALBResult> => {

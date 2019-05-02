@@ -1,0 +1,17 @@
+{
+  "testMatch": [
+    "<rootDir>/cucumber/steps/*.steps.ts"
+  ],
+  "verbose": true,
+  "testRunner": "jest-circus/runner",
+  "transform": {
+    "^.+\\.ts?$": "<rootDir>/node_modules/ts-jest"
+  },
+  "moduleFileExtensions": [
+    "ts",
+    "tsx",
+    "js",
+    "json"
+  ],
+  "testEnvironment": "node"
+}

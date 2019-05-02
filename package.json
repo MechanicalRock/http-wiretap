@@ -4,7 +4,8 @@
   "description": "Serverless webpack example using Typescript",
   "main": "handler.js",
   "scripts": {
-    "test": "jest --verbose",
+    "test": "jest -c jest.unit.config.json",
+    "integration": "jest -c jest.integration.config.json",
     "build": "tsc",
     "deploy": "sls deploy"
   },
@@ -40,22 +41,5 @@
     "webpack": "^4.5.0"
   },
   "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",
-  "license": "MIT",
-  "jest": {
-    "testMatch": [
-      "<rootDir>/cucumber/steps/*.steps.ts",
-      "<rootDir>/tests/**/*.test.ts"
-    ],
-    "transform": {
-      "^.+\\.ts?$": "<rootDir>/node_modules/ts-jest"
-    },
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "json"
-    ],
-    "testEnvironment": "node",
-    "testRunner": "jest-circus/runner"
-  }
+  "license": "MIT"
 }
