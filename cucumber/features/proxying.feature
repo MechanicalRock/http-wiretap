@@ -36,10 +36,16 @@ Scenario: The downstream service fails to respond
   And the proxy should return within 1.1 seconds
 
 @complete
+Scenario: Host header is not directly copied into requests downstream
+  When the client send a request to the proxy
+  Then the request headers should be received by the downstream service
+  But the host header should should not match the client request
+
+@complete
 Scenario: Transparent proxying of requests downstream
   When the client send a request to the proxy
   Then the request body should be received by the downstream service
-  And the request headers excluding the host should be received by the downstream service
+  And the request headers should be received by the downstream service
   And the request parameters should be received by the downstream service
   And the request path should be received by the downstream service
 

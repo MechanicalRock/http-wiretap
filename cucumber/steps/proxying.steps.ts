@@ -92,6 +92,29 @@ defineFeature(feature, scenario => {
     });
   });
 
+  scenario('Host header is not directly copied into requests downstream', ({ when, but, then }) => {
+
+    when('the client send a request to the proxy', async () => {
+      // Ideally this should be in a beforeEach as an implicit background step.
+      // However `beforeEach()` are not currently scoped in jest-cucumber - they run before EVERY scenario
+      fetchMock.post(proxiedUrlMatcher, 200)
+
+      await whenTheClientSendsAnyRequestToTheProxy()
+    });
+
+    then('the request headers should be received by the downstream service', () => {
+      const lastOptions: any = fetchMock.lastOptions()
+      expect(lastOptions.headers).toBeDefined()
+      expect(lastOptions.headers).toEqual({
+        "x-forwarded-proto": "https",
+      })
+    });
+
+    but('the host header should should not match the client request', () => {
+      expect(fetchMock.lastOptions().headers.host).not.toBe("localhost")
+    });
+  });
+
   scenario('Transparent proxying of requests downstream', ({ when, then, and }) => {
 
     when('the client send a request to the proxy', async () => {
@@ -108,7 +131,7 @@ defineFeature(feature, scenario => {
       expect(lastOptions.body).toEqual("The request body")
     });
 
-    and('the request headers excluding the host should be received by the downstream service', () => {
+    and('the request headers should be received by the downstream service', () => {
       const lastOptions = fetchMock.lastOptions()
       expect(lastOptions.headers).toBeDefined()
       expect(lastOptions.headers).toEqual({
