@@ -5,6 +5,8 @@ plugins:
   - serverless-webpack
   - serverless-pseudo-parameters
   - serverless-offline
+  - serverless-plugin-aws-alerts
+
 provider:
   name: aws
   runtime: nodejs8.10
@@ -24,6 +26,14 @@ custom:
       public: ${opt:publicSubnetIds}
   wiretap:
     port: 5050
+    s3Logs: traffic-tee-logs-${self:provider.stage}
+  alerts:
+    dashboards: true
+    alarms:
+      - functionThrottles
+      - functionErrors
+      - functionInvocations
+      - functionDuration
 
 functions:
   sendProxy:
@@ -36,8 +46,7 @@ functions:
     environment:
       PROXY_URL: ${self:custom.proxy.url}
       PROXY_TIMEOUT_SECONDS: ${self:custom.proxy.timeout}
-      PROXY_BUCKET_NAME:
-        Ref: S3BucketTrafficteelogs
+      PROXY_BUCKET_NAME: ${self:custom.wiretap.s3Logs}
 
   proxyToHttpService:
     handler: build/handler.proxyToHttpService
@@ -49,7 +58,7 @@ functions:
       HTTP_SERVICE_URL: ${self:custom.httpservice.url}
     events:
       - s3:
-          bucket: traffic-tee-logs
+          bucket: ${self:custom.wiretap.s3Logs}
           event: s3:ObjectCreated:*
 
 resources:
@@ -80,7 +89,6 @@ resources:
         GroupDescription: "ALB Security Group to define allowed traffic"
         SecurityGroupIngress:
           - CidrIp: 0.0.0.0/0
-            # CidrIp: 10.0.0.0/8
             IpProtocol: tcp
             FromPort: ${self:custom.wiretap.port}
             ToPort: ${self:custom.wiretap.port}
@@ -89,10 +97,8 @@ resources:
       Type: AWS::ElasticLoadBalancingV2::LoadBalancer
       Properties:
         Type: application
-        # Scheme: internal
         Scheme: internet-facing
         IpAddressType: ipv4
-        # Subnets: !Split [",", "${self:custom.vpc.subnets.private}"]
         Subnets: !Split [",", "${self:custom.vpc.subnets.public}"]
         SecurityGroups:
           - !Ref albSecurityGroupSendProxy
@@ -103,9 +109,6 @@ resources:
         Port: ${self:custom.wiretap.port}
         LoadBalancerArn: !Ref albService
         Protocol: HTTP
-        # Protocol: HTTPS
-        # Certificates:
-        #   - CertificateArn: "xxx" Eventually will be HTTPS once we have a ACM Cert Setup?
         DefaultActions:
           - Type: forward
             TargetGroupArn: !Ref sendProxyTargetGroup
@@ -128,19 +131,14 @@ resources:
     trafficTeeLogS3BucketPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
-        Bucket:
-          Ref: S3BucketTrafficteelogs
+        Bucket: ${self:custom.wiretap.s3Logs}
         PolicyDocument:
           Statement:
-            - Effect: "Allow"
+            - Effect: 'Allow'
               Action:
                 - s3:PutObject
                 - s3:GetObject
-              Resource:
-                Fn::Join:
-                  - "/"
-                  - - !GetAtt S3BucketTrafficteelogs.Arn
-                    - "*"
+              Resource: arn:aws:s3:::${self:custom.wiretap.s3Logs}/*
               Principal:
                 AWS: !GetAtt IamRoleLambdaExecution.Arn
 

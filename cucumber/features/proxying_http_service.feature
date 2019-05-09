@@ -8,20 +8,20 @@ Rules:
   - Distributed tracing is configured (XRay)
 
 Scenario: Non POST requests are not forwarded
-  Given contents of a GET request
-  When the contents are uploaded to a file on S3
+  Given a proxy GET request that was made downstream
+  When the request is logged onto S3
   Then the proxy should not forward the request to the http service
 
 Scenario: Client host header should not be forwarded to http service
-  Given contents of a POST request with host header "http://mydomain.org"
-  When the contents are uploaded to a file on S3
-  Then the proxy should forward the request
-  But the host header should not be the same
+  Given a proxy POST request that was made downstream
+  When the request is logged onto S3
+  Then the proxy should forward the request to the http service
+  But the host header should not be directly copied across
 
 Scenario: Client request params, headers, body are forwarded on same path to the http service
-  Given contents of a POST request with specific headers, query, body and path
-  When the contents are uploaded to a file on S3
-  Then the proxy should forward the request should be to the same path
+  Given a proxy POST request that was made downstream with specific headers, query, body and path
+  When the request is logged onto S3
+  Then the proxy should forward the request to the http service on the same path
   And the request should have the same query params
   And the request should have the same headers params
   And the request should have the same body params

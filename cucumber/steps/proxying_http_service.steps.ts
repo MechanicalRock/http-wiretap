@@ -25,6 +25,7 @@ const whenTheContentsOfARequestAreUploadedToS3 = async (requestEventBody: ProxyR
     })
   })
 
+  // in integration test, uploading to S3 should trigger this function execution
   await forwardProxyToHttpService({
     Records: [{
       s3: {
@@ -53,82 +54,78 @@ defineFeature(feature, scenario => {
   })
 
   scenario('Client host header should not be forwarded to http service', ({ given, when, then, but }) => {
-    let clientHost: string
-
-    given(/^contents of a POST request with host header (.*)$/, (host: string) => {
-      clientHost = host
-
+    given(/^a proxy POST request that was made downstream$/, () => {
       requestEventBody = {
         path: "/",
         body: "",
         method: "POST",
         params: {},
         headers: {
-          host
+          host: "somehost.com"
         }
       }
     })
 
-    when(/^the contents are uploaded to a file on S3$/, async () => {
+    when(/^the request is logged onto S3$/, async () => {
       await whenTheContentsOfARequestAreUploadedToS3(requestEventBody)
     })
 
-    then('the proxy should forward the request', () => {
-      expect(fetchMock.called()).toBeTruthy()
+    then('the proxy should forward the request to the http service', () => {
+      expect(fetchMock.lastUrl()).toBe("http://external-service/v1/")
     })
 
-    but(/^the host header should not be the same$/, () => {
-      expect(fetchMock.lastOptions().headers.host).not.toBe(clientHost)
-    })
-
-    scenario('Client request params, headers, body are forwarded on same path to the http service', ({ given, when, then, and }) => {
-    	given('contents of a POST request with specific headers, query, body and path', () => {
-        requestEventBody = {
-          path: "/checkpoint",
-          body: '{"firstName": "John", "lastName": "Doe"}',
-          method: "POST",
-          params: {
-            group: "mechanicalrock"
-          },
-          headers: {
-            'content-type': 'application/json',
-            'etag': '1234ABC'
-          }
-        }
-    	})
-
-    	when(/^the contents are uploaded to a file on S3$/, async () => {
-        await whenTheContentsOfARequestAreUploadedToS3(requestEventBody)
-    	})
-
-    	then('the proxy should forward the request should be to the same path', () => {
-        expect(fetchMock.lastUrl()).toBeDefined()
-        expect(fetchMock.lastUrl()).toBe("http://external-service/v1/checkpoint?group=mechanicalrock")
-    	})
-
-    	and('the request should have the same query params', () => {
-        expect(fetchMock.lastUrl()).toContain("?group=mechanicalrock")
-    	})
-
-    	and('the request should have the same headers params', () => {
-        expect(fetchMock.lastOptions().headers).toBeDefined()
-        expect(fetchMock.lastOptions().headers).toEqual({
-          'content-type': 'application/json',
-          'etag': '1234ABC'
-        })
-    	})
-
-    	and('the request should have the same body params', () => {
-        const requestPayload = fetchMock.lastCall()[1] as ProxyRequestPayload
-
-        expect(requestPayload).toBeDefined()
-        expect(requestPayload.body).toBe('{"firstName": "John", "lastName": "Doe"}')
-    	})
+    but(/^the host header should not be directly copied across$/, () => {
+      expect(fetchMock.lastOptions().headers.host).not.toBe("somehost.com")
     })
   })
 
-  scenario('Non POST requests are not forwarded', ({ given, when, then }) => {
-    given(/^contents of a GET request$/, () => {
+  scenario('Client request params, headers, body are forwarded on same path to the http service', ({ given, when, then, and }) => {
+    given('a proxy POST request that was made downstream with specific headers, query, body and path', () => {
+      requestEventBody = {
+        path: "/checkpoint",
+        body: '{"firstName": "John", "lastName": "Doe"}',
+        method: "POST",
+        params: {
+          group: "mechanicalrock"
+        },
+        headers: {
+          'content-type': 'application/json',
+          'etag': '1234ABC'
+        }
+      }
+    })
+
+    when(/^the request is logged onto S3$/, async () => {
+      await whenTheContentsOfARequestAreUploadedToS3(requestEventBody)
+    })
+
+    then('the proxy should forward the request to the http service on the same path', () => {
+      expect(fetchMock.lastUrl()).toBeDefined()
+      expect(fetchMock.lastUrl()).toBe("http://external-service/v1/checkpoint?group=mechanicalrock")
+    })
+
+    and('the request should have the same query params', () => {
+      expect(fetchMock.lastUrl()).toContain("?group=mechanicalrock")
+    })
+
+    and('the request should have the same headers params', () => {
+      expect(fetchMock.lastOptions().headers).toBeDefined()
+      expect(fetchMock.lastOptions().headers).toEqual({
+        'content-type': 'application/json',
+        'etag': '1234ABC'
+      })
+    })
+
+    and('the request should have the same body params', () => {
+      const requestPayload = fetchMock.lastCall()[1] as ProxyRequestPayload
+
+      expect(requestPayload).toBeDefined()
+      expect(requestPayload.body).toBe('{"firstName": "John", "lastName": "Doe"}')
+    })
+  })
+
+  scenario('Non POST requests are not forwarded', ({ when, given, then }) => {
+    given(/^a proxy GET request that was made downstream$/, async () => {
       requestEventBody = {
         path: "/bananas",
         method: "GET",
@@ -137,7 +134,7 @@ defineFeature(feature, scenario => {
       }
     })
 
-    when(/^the contents are uploaded to a file on S3$/, async () => {
+    when("the request is logged onto S3", async () => {
       await whenTheContentsOfARequestAreUploadedToS3(requestEventBody)
     })
 

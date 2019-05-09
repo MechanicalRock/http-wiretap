@@ -8,7 +8,7 @@ export const isValidUrl = (proxyUrl: string): boolean => {
 
 export const urlAndParams = (url: string, params: any) => {
   const paramStr = Object.keys(params).map(k => `${k}=${params[k]}`).join('&')
-  return `${url}?${paramStr}`
+  return paramStr ? `${url}?${paramStr}` : url
 }
 
 /**

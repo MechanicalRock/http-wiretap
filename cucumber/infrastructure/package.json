@@ -1,7 +1,7 @@
 {
-  "name": "aws-nodejs-typescript",
+  "name": "tee-traffic-testing-infra",
   "version": "1.0.0",
-  "description": "Serverless webpack example using Typescript",
+  "description": "Testing infrastructure for the integration tests",
   "main": "handler.js",
   "scripts": {
     "build": "tsc",
@@ -24,6 +24,6 @@
     "typescript": "^3.2.4",
     "webpack": "^4.29.0"
   },
-  "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",
+  "author": "Mecahnicalrock",
   "license": "MIT"
 }

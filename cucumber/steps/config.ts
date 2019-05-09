@@ -1,4 +1,4 @@
-export const proxyHost = "wiret-albSe-1VGDWATE2HD2B-1913174424.us-east-1.elb.amazonaws.com"
+export const proxyHost = "internal-ls-er-albSe-LKN7SGUF3LXN-1577407526.us-east-1.elb.amazonaws.com"
 export const proxyPort = "5050"
 export const serviceEndpoints = {
   GET: {
